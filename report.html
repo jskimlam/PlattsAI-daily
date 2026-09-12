@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Platts Daily | Petrochemical Feedstock Procurement Daily Market Report</title>
+<style>
+/* ===== 한국식 등락 색상: 상승=빨강(#dc2626), 하락=파랑(#2563eb), 보합=회색(#94a3b8) ===== */
+:root{
+  --up:#dc2626; --dn:#2563eb; --flat:#94a3b8;
+  --brent:#111827; --wti:#a16207; --sm:#1e40af; --bd:#f59e0b;
+  --naph:#b91c1c; --benz:#0891b2; --pp:#059669;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;}
+
+#rpt-header{
+  background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);
+  color:#fff;padding:20px 24px 16px;
+  display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;
+}
+#rpt-header .hd-left .title{font-size:clamp(15px,2.2vw,20px);font-weight:800;letter-spacing:-.3px;}
+#rpt-header .hd-left .sub{font-size:clamp(10px,1.4vw,12px);color:#94a3b8;margin-top:4px;line-height:1.5;}
+#rpt-header .hd-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+#rpt-header .hd-btns button, #rpt-header .lang-btn{
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);
+  color:#fff;font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;
+  transition:background .15s;
+}
+#rpt-header .hd-btns button:hover, #rpt-header .lang-btn:hover{background:rgba(255,255,255,.22);}
+#rpt-header .lang-btn.active{background:#fff;color:#1e3a8a;border-color:#fff;}
+
+.lang-row{display:flex;gap:6px;flex-wrap:wrap;}
+.db-status{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 9px;border-radius:6px;
+  border:1px solid rgba(255,255,255,.28);
+  background:rgba(255,255,255,.08);
+  color:#cbd5e1;font-size:10px;font-weight:700;white-space:nowrap;
+}
+.db-status::before{content:"";width:7px;height:7px;border-radius:50%;background:#f59e0b;}
+.db-status.ok::before{background:#22c55e;}
+.db-status.warn::before{background:#f59e0b;}
+.db-status.err::before{background:#ef4444;}
+
+
+#rpt-body{max-width:900px;margin:0 auto;padding:16px 12px 32px;}
+
+.sec-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.sec-title{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.sec-title .badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:14px;}
+.kpi-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+.kpi-label{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:2px;}
+.kpi-val{font-size:15px;font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums;}
+.kpi-delta{font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:1px;}
+.kpi-unit{font-size:9px;color:#94a3b8;margin-top:1px;}
+.up{color:var(--up);} .dn{color:var(--dn);} .flat{color:var(--flat);}
+
+.price-table{width:100%;border-collapse:collapse;font-size:11.5px;}
+.price-table th{background:#f8fafc;padding:6px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;border-bottom:1px solid #e2e8f0;white-space:nowrap;}
+.price-table td{padding:6px 8px;border-bottom:1px solid #f1f5f9;color:#334155;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.price-table tr:last-child td{border-bottom:none;}
+.price-table tr:hover td{background:#f8fafc;}
+.price-table .sym{font-family:monospace;font-size:10px;color:#94a3b8;}
+.tbl-wrap{border:1px solid #e2e8f0;border-radius:8px;overflow:auto;}
+
+.comm-block{border-left:3px solid #e2e8f0;padding:8px 12px;margin-bottom:10px;border-radius:0 6px 6px 0;background:#fafafa;}
+.comm-block .comm-name{font-size:11px;font-weight:700;margin-bottom:4px;}
+.comm-block p{font-size:12px;color:#475569;line-height:1.65;}
+
+.factor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
+.factor-card{border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;background:#fafafa;}
+.factor-card .fc-cat{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;padding:2px 7px;border-radius:20px;display:inline-block;}
+.fc-supply{background:#fef3c7;color:#92400e;}
+.fc-demand{background:#dbeafe;color:#1e40af;}
+.fc-macro{background:#f0fdf4;color:#166534;}
+.factor-card ul{list-style:none;padding:0;}
+.factor-card ul li{font-size:11.5px;color:#334155;padding:3px 0;border-bottom:1px solid #f1f5f9;line-height:1.5;}
+.factor-card ul li:last-child{border-bottom:none;}
+.factor-card ul li .src{font-size:10px;color:#94a3b8;}
+
+.outlook-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
+.outlook-item{border:1px solid #e2e8f0;border-radius:8px;padding:9px 11px;background:#fafafa;}
+.outlook-item .oi-name{font-size:11px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:5px;}
+.outlook-item .oi-dir{font-size:13px;font-weight:800;}
+.outlook-item ul{list-style:disc;padding-left:14px;}
+.outlook-item ul li{font-size:11px;color:#475569;line-height:1.55;}
+
+.info-list{list-style:none;padding:0;}
+.info-list li{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:11.5px;color:#334155;line-height:1.5;}
+.info-list li:last-child{border-bottom:none;}
+.info-tag{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;align-self:flex-start;margin-top:1px;}
+.tag-plant{background:#ede9fe;color:#5b21b6;}
+.tag-maint{background:#ede9fe;color:#5b21b6;}
+.tag-opec{background:#fef3c7;color:#92400e;}
+.tag-geo{background:#fee2e2;color:#991b1b;}
+.tag-logistics{background:#dbeafe;color:#1e40af;}
+.tag-reg{background:#d1fae5;color:#065f46;}
+.tag-macro{background:#f0f9ff;color:#0369a1;}
+.tag-util{background:#ede9fe;color:#5b21b6;}
+
+.ai-narrative{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:#334155;line-height:1.7;}
+.signal-box{background:#0f172a;border-radius:8px;padding:12px;margin-bottom:10px;}
+.signal-box .sb-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:8px;}
+.signal-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:11.5px;gap:10px;}
+.signal-row:last-child{border-bottom:none;}
+.signal-row .sr-label{color:#cbd5e1;}
+.signal-row .sr-val{color:#f8fafc;font-weight:600;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+.flag-box{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 12px;margin-bottom:10px;}
+.flag-box .fb-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#c2410c;margin-bottom:6px;}
+.flag-item{font-size:11.5px;color:#7c2d12;padding:3px 0;border-bottom:1px solid #fed7aa;}
+.flag-item:last-child{border-bottom:none;}
+.exec-box{background:#1e3a5f;border-radius:8px;padding:12px;}
+.exec-box .eb-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#93c5fd;margin-bottom:8px;}
+.exec-row{font-size:12px;color:#e2e8f0;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.1);line-height:1.6;}
+.exec-row:last-child{border-bottom:none;}
+.exec-row .er-num{font-weight:800;color:#60a5fa;margin-right:6px;}
+
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;}
+.chart-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+.chart-card .cc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;}
+.chart-card .cc-name{font-size:11px;font-weight:700;color:#0f172a;}
+.chart-card .cc-unit{font-size:9.5px;color:#94a3b8;}
+.chart-card .cc-controls{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+.chart-card .cc-toggle{font-size:9.5px;padding:2px 7px;border-radius:20px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;}
+.chart-card .cc-toggle.active{background:#1e40af;color:#fff;border-color:#1e40af;}
+.chart-card .cc-toggle.off{background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0;}
+.chart-card .cc-type-btns{display:flex;gap:2px;}
+.chart-card .cc-type-btn{font-size:9px;padding:2px 5px;border-radius:4px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;}
+.chart-card .cc-type-btn.active{background:#0f172a;color:#fff;border-color:#0f172a;}
+.chart-canvas-wrap{height:140px;position:relative;}
+.chart-canvas-wrap canvas{width:100%;height:100%;}
+
+.source-bar{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:10px;color:#94a3b8;line-height:1.6;}
+.source-bar strong{color:#64748b;}
+
+.footnote{font-size:10px;color:#94a3b8;margin-top:8px;line-height:1.6;padding:6px 10px;background:#f8fafc;border-radius:6px;border:1px solid #f1f5f9;}
+
+@media print{
+  #rpt-header .hd-btns, .lang-row, .cc-controls, .cc-toggle { display:none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="rpt-header">
+  <div class="hd-left">
+    <div class="title" id="hdr-title"></div>
+    <div class="sub" id="hdr-sub"></div>
+  </div>
+  <div class="hd-btns">
+    <a href="index.html" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;text-decoration:none;">← Archive</a>
+    <span class="db-status warn" id="db-status">DB 연결 확인 중</span>
+    <div class="lang-row" id="lang-row">
+      <button class="lang-btn" data-lang="ko">한국어</button>
+      <button class="lang-btn" data-lang="en">English</button>
+      <button class="lang-btn" data-lang="ja">日本語</button>
+      <button class="lang-btn" data-lang="zh">中文</button>
+    </div>
+    <button id="btn-img-dl"></button>
+    <button id="btn-pdf-dl"></button>
+  </div>
+</div>
+
+<div id="rpt-body">
+
+<!-- ① 코멘터리 -->
+<div class="sec-card">
+  <div class="sec-title"><span id="s1-title"></span> <span class="badge" id="badge-0"></span></div>
+  <div class="kpi-grid" id="kpi-grid"></div>
+  <div class="tbl-wrap" style="margin-bottom:12px;">
+    <table class="price-table">
+      <thead><tr id="tbl-head"></tr></thead>
+      <tbody id="tbl-body"></tbody>
+    </table>
+  </div>
+  <div class="footnote" id="footnote-el"></div>
+  <div style="margin-top:12px;padding:10px 12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;font-size:12px;color:#334155;line-height:1.7;">
+    <strong id="summary-lbl"></strong><br>
+    <span id="summary-text"></span>
+  </div>
+  <div style="margin-top:14px;">
+    <div style="font-size:11px;font-weight:700;color:#0f172a;margin-bottom:8px;" id="prod-comm-lbl"></div>
+    <div id="prod-list"></div>
+  </div>
+</div>
+
+<!-- ② 변동요인 -->
+<div class="sec-card">
+  <div class="sec-title"><span id="s2-title"></span> <span class="badge" id="badge-1"></span></div>
+  <div class="factor-grid" id="factor-grid"></div>
+</div>
+
+<!-- ③ 단기전망 -->
+<div class="sec-card">
+  <div class="sec-title"><span id="s3-title"></span> <span class="badge" id="badge-2"></span></div>
+  <div class="outlook-grid" id="outlook-grid"></div>
+</div>
+
+<!-- ④ 추가정보 -->
+<div class="sec-card">
+  <div class="sec-title"><span id="s4-title"></span> <span class="badge" id="badge-3"></span></div>
+  <ul class="info-list" id="info-list"></ul>
+</div>
+
+<!-- ⑤ AI 전망 -->
+<div class="sec-card">
+  <div class="sec-title"><span id="s5-title"></span> <span class="badge" id="badge-4"></span></div>
+  <div class="ai-narrative">
+    <strong id="ai-narrative-lbl"></strong><br>
+    <span id="ai-narrative-text"></span>
+  </div>
+  <div class="signal-box">
+    <div class="sb-title" id="signal-lbl"></div>
+    <div id="signal-rows"></div>
+  </div>
+  <div class="flag-box">
+    <div class="fb-title" id="flag-lbl"></div>
+    <div id="flag-rows"></div>
+  </div>
+  <div class="exec-box">
+    <div class="eb-title" id="exec-lbl"></div>
+    <div id="exec-rows"></div>
+  </div>
+</div>
+
+<!-- ⑥ 가격 차트 -->
+<div class="sec-card">
+  <div class="sec-title"><span id="s6-title"></span> <span class="badge" id="badge-5"></span></div>
+  <div class="chart-grid" id="chart-grid-container"></div>
+</div>
+
+<div class="source-bar" id="source-bar-el"></div>
+
+</div><!-- /rpt-body -->
+
+<script>
+var DATA = {"products": [{"key": "brent", "sym": "ICLL001", "unit": "bbl", "freq": "fut", "icon": "🛢", "color": "#111827"}, {"key": "wti", "sym": "NMCL001", "unit": "bbl", "freq": "fut", "icon": "🛢", "color": "#a16207"}, {"key": "sm", "sym": "AAMFI00", "unit": "mt", "freq": "d", "icon": "🧪", "color": "#1e40af"}, {"key": "bd", "sym": "AAWWL00", "unit": "mt", "freq": "d", "icon": "🧪", "color": "#f59e0b"}, {"key": "naph", "sym": "PAAAD00", "unit": "mt", "freq": "d", "icon": "⛽", "color": "#b91c1c"}, {"key": "benz", "sym": "PHASM05", "unit": "mt", "freq": "d", "icon": "🧪", "color": "#0891b2"}, {"key": "pp", "sym": "PHBIK00", "unit": "mt", "freq": "d", "icon": "🧴", "color": "#059669"}], "chartData": {"brent": {"dates": ["2026-09-04", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"], "vals": [96.28, 97.0, 97.92, 101.21, 107.63, 104.61]}, "wti": {"dates": ["2026-09-03", "2026-09-04", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"], "vals": [91.3, 91.48, 93.03, 96.05, 102.48, 100.05]}, "sm": {"dates": ["2026-09-04", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"], "vals": [1282, 1290, 1310, 1324, 1369, 1339]}, "bd": {"dates": ["2026-09-04", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"], "vals": [1600, 1600, 1600, 1600, 1600, 1600]}, "naph": {"dates": ["2026-09-04", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"], "vals": [863, 869.5, 894.5, 903.75, 908.5, 968.5]}, "benz": {"dates": ["2026-09-04", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"], "vals": [1099, 1114, 1147.33, 1173.33, 1212.33, 1201.67]}, "pp": {"dates": ["2026-09-04", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"], "vals": [1125, 1140, 1140, 1170, 1170, 1170]}}, "T": {"ko": {"title": "📊 석유화학 원료 조달 데일리 시황 리포트", "sub1": "발표 기준일: 2026-09-11 (일간) · 비교기준: 전일 대비(DoD) / 전일 결제가 대비", "sub2": "ABS·AN: 금주 비발표일(토) — 본 리포트에서 완전 생략 | 일간 7개 상품 고정 노출", "btn_img": "🖼 이미지 저장", "btn_pdf": "📄 PDF 저장", "s1": "당일 종가/결제가 현황", "s2": "변동요인", "s3": "단기전망 (익일~2~3거래일)", "s4": "추가정보", "s5": "AI 전망", "s6": "가격 차트 (일간 7개 상품)", "badges": ["기(起)", "승(承)", "전(轉)", "전-보강", "결(結)", "부속"], "kpi_unit": {"fut": "USD/bbl · 선물결제가", "d": "USD/mt · Platts 종가"}, "basis": {"fut": "전일 결제가 대비", "d": "전일 대비(DoD)"}, "tbl_headers": ["상품", "심볼", "종가/결제가", "단위", "변동폭", "등락률", "방향", "비교기준"], "footnote": ["※ ICE Brent Mo01(ICLL001)·WTI Mo01(NMCL001): 거래소 선물 결제가(Settlement), 전일 결제가 대비 기준.", "※ SM·BD·Naphtha·Benzene·PP: Platts Daily Assessment(bate=c) 기준 당일 발표 종가, 전일 대비(DoD).", "※ ABS(PHAHF00, 수요일 발표)·AN(PHAOO00, 화요일 발표): 오늘(2026-09-12, 토) 비발표일 — 본 리포트 전 섹션에서 완전 생략."], "summary_lbl": "📌 전체 요약", "summary": "9월 11일 원유 선물은 전일 급등(Brent $107.63, WTI $102.48)에 따른 차익실현 매물로 일제히 하락 결제되었으나, Brent는 여전히 $100/bbl 상회를 유지하며 지정학 리스크 프리미엄이 구조적으로 내재된 상태다. 나프타(C+F Japan)는 전일 대비 +$60/mt(+6.60%)의 이례적 급등을 기록하며 주간 최고치를 경신했는데, 이는 사우디 남부 시설 피격 이후 중동발 공급 차질 우려가 아시아 현물 시장에 직접 반영된 결과다. SM은 전일 급등 후 조정(-$30/mt)을 받았고, BD는 $1,600/mt에서 5거래일 연속 보합을 유지하며 공급 타이트니스가 가격 하방을 지지하고 있다. Benzene은 소폭 하락했으나 주간 기준으로는 $1,099→$1,201.67/mt의 강한 상승 흐름을 이어가고 있으며, PP는 $1,170/mt에서 이틀째 보합으로 원가 상승분을 아직 완전히 반영하지 못한 모습이다.", "prod_commentary_lbl": "제품별 시황 코멘터리", "names": {"brent": "ICE Brent Mo01", "wti": "WTI Mo01", "sm": "SM CFR China", "bd": "BD CFR China", "naph": "Naphtha C+F Japan", "benz": "Benzene FOB Korea", "pp": "PP Raffia CFR FEA"}, "product_commentary": {"brent": "9월 9일 미군의 이란 유조선 5척 격침 및 이란의 보복 공격으로 Brent가 $101.21/bbl을 돌파한 데 이어, 9월 10일에는 $107.63/bbl까지 급등하며 5월 22일 이후 최고치를 기록했다. 9월 11일에는 차익실현 매물과 USGC 원유 재고 증가(+2.43mb, 247.5mb) 소식이 겹치며 $104.61/bbl로 하락 결제되었다. 사우디 동서 파이프라인 차단 및 Jazan 정유소 가동 중단 등 공급 측 리스크는 여전히 상존하며, 호르무즈 통항 선박 수는 9월 7일 22척(8월 28일 이후 최고)으로 소폭 회복됐으나 주간 합계는 93척으로 전주 116척 대비 감소했다.", "wti": "WTI는 9월 9일 $96.05/bbl에서 9월 10일 $102.48/bbl로 급등한 후, 9월 11일 $100.05/bbl로 소폭 하락하며 $100/bbl 선을 간신히 유지했다. USGC 사워 크루드 차별가는 Mars 기준 WTI+$3/bbl로 전일 대비 75센트 하락하며 USGC 재고 증가를 반영했다. Brent-WTI 스프레드는 9월 11일 기준 $4.56/bbl로, 전일($5.15/bbl) 대비 소폭 축소되었다. 아시아 수요 강세로 WTI Midland의 유럽 도착 프리미엄이 Dated Brent 대비 $10/bbl 이상을 유지하는 등 대서양 분지 원유 수급 타이트니스가 지속되고 있다.", "sm": "SM은 9월 9일 $1,324/mt에서 9월 10일 $1,369/mt로 급등한 후, 9월 11일 $1,339/mt로 조정을 받았다. 주간 기준으로는 $1,282→$1,339/mt로 +$57/mt 상승했으며, 이는 원유 강세와 동중국 항구 재고 급감(40,800mt, 20개월 최저)이 복합적으로 작용한 결과다. Formosa Chemicals의 Mailiao No.2 SM 유닛(35만mt/y)이 9월 재가동에 들어갔으나 가동률 70% 수준에 그쳐 공급 회복이 제한적이다. 인도의 중국산 SM 수입 지속과 낮은 재고 수준이 단기 가격 하방을 지지하고 있다.", "bd": "BD는 9월 4일부터 11일까지 5거래일 연속 $1,600/mt에서 보합을 유지했다. 8월 초 이후 26% 급등한 가격이 고착화된 양상으로, 한국 크래커 정비 및 수출 증가로 인한 공급 타이트니스가 하방을 지지하는 반면, 다운스트림 ABS·합성고무 수요 부진이 추가 상승을 제한하고 있다. 중국 내 BD 추출 유닛 재가동이 8월 정비 피크 이후 진행 중이나, 동아시아 전반의 크래커 가동률 저하로 공급 회복 속도는 완만하다. 10월물은 9월물 대비 백워데이션 구조가 형성되어 있어 단기 공급 타이트니스를 반영하고 있다.", "naph": "나프타는 9월 11일 전일 대비 +$60/mt(+6.60%)의 이례적 급등을 기록하며 주간 최고치를 경신했다. 이는 사우디 남부 에너지 시설 피격(9월 8일) 이후 중동발 나프타 공급 차질 우려가 아시아 현물 시장에 직접 반영된 것으로, LR1 탱커의 호르무즈 내부 선적 운임이 외부 대비 w600 이상 높게 형성되는 등 물류 리스크 프리미엄이 급등했다. 한국의 나프타 수출 제한 조치(2027년 1월까지 연장)와 Lotte Chemical Daesan 크래커 영구 폐쇄도 아시아 나프타 수급 타이트니스를 구조적으로 심화시키고 있다.", "benz": "벤젠은 9월 11일 전일 대비 −$10.66/mt 소폭 하락했으나, 주간 기준으로는 $1,099→$1,201.67/mt로 +$102.67/mt의 강한 상승세를 이어갔다. Sinopec의 동중국 벤젠 리스트 가격이 9월 7일 9,050위안/mt으로 인상된 데 이어, 동중국 항구 재고가 45,000mt(9월 2일 기준, 전주 대비 −11,000mt)로 급감하며 공급 타이트니스가 지속되고 있다. 가솔린 블렌딩 수요(에틸벤젠 경유)가 미국·유럽·아시아 전역에서 벤젠 가격을 지지하는 구조적 요인으로 작용 중이며, 9월 계약가(CP)는 $1,035/mt으로 상향 기대가 형성되어 있다.", "pp": "PP는 9월 9일 $1,170/mt으로 상승한 후 이틀째 보합을 유지했다. 주간 기준으로는 $1,125→$1,170/mt으로 +$45/mt 상승했으며, 이는 원유 강세에 따른 프로필렌 가격 상승이 주요 동인이다. 중국 내 프로필렌 가격이 PP 가격을 상회하는 역마진 구조가 형성되어 생산자들의 PP 제조 유인이 약화되고 있으며, 10월 골든위크 대비 재고 확보 수요가 일부 가격을 지지하고 있다. 반면 베트남·동남아 컨버터들의 마진 압박으로 구매 의향은 제한적이며, 항구 혼잡 및 운임 상승이 수입 수요를 억제하고 있다."}, "factor_tag_labels": {"supply": "공급", "demand": "수요", "macro": "매크로"}, "factors": [{"tag": "supply", "items": [{"text": "사우디 동서 파이프라인 차단(9/11) — 남부 시설 피격 후 예방적 가동 중단. Jazan 정유소(40만b/d) 오프라인 지속.", "src": "Platts, 2026-09-11"}, {"text": "호르무즈 통항 9/7 22척(8/28 이후 최고) → 주간 합계 93척(전주 116척 대비 ↓). 9/7 통항 중 13척 AIS 소등.", "src": "S&P Global CAS, 2026-09-08"}, {"text": "중동 정유 가동 중단 약 1.4mb/d(9/8 기준). 쿠웨이트 Al-Zour(61.5만b/d) CDU 1기 운전 중.", "src": "Daily Update on the War with Iran, 2026-09-08"}, {"text": "Formosa Mailiao No.2 SM 유닛 재가동(9월, 70% 가동). Jiangsu Sailboat ACN No.2 유닛 재가동(9/8).", "src": "Platts, 2026-09-08"}, {"text": "한국 나프타 수출 제한 2027년 1월까지 연장. Lotte Chemical Daesan 크래커·BD 추출 유닛 영구 폐쇄.", "src": "Asian Petrochemical Feedstock Market Outlook, 2026-09-04"}]}, {"tag": "demand", "items": [{"text": "아시아 원유 수요 강세 지속 — Vitol, Forties 2척 VLCC 중국행 9월 선적. 북해 Dated Brent 물리 차별가 수개월 최고치.", "src": "Platts North Sea Crude, 2026-09-10"}, {"text": "가솔린 블렌딩 수요 — 아시아·유럽·미국 전역 톨루엔·벤젠·MX 수요 지속. 동중국 톨루엔 항구 재고 12,500mt(20.9% WoW ↓).", "src": "Platts, 2026-09-07"}, {"text": "중국 PP 수요 — 골든위크 대비 재고 확보 및 계절적 수요 기대. 단, 컨버터 마진 압박으로 구매 의향 제한적.", "src": "Asian PP Commentary, 2026-09-09"}, {"text": "ABS 수요 부진 — 구매자 관망세 지속, 피드스톡 비용 상승에도 가격 전가 어려움. 생산 마진 −$124.20/mt(9/4 기준, 6개월 최저).", "src": "Platts, 2026-09-07"}]}, {"tag": "macro", "items": [{"text": "OPEC+ 10월 쿼터 증산 일시 중단 합의(9/6 가상회의). 4월 이후 첫 동결 결정.", "src": "OPEC Secretariat, 2026-09-06"}, {"text": "Brent-WTI 스프레드: 9/11 $4.56/bbl(전일 $5.15/bbl 대비 축소). 아시아 수요 강세로 WTI Midland 유럽 도착 프리미엄 Dated Brent 대비 $10/bbl 이상 유지.", "src": "Platts, 2026-09-11"}, {"text": "미국 비농업 고용 +162,000명(8월, 예상치 55,000 대폭 상회) → Fed 금리 인상 가능성 재부각, 수요 억제 우려.", "src": "ING Think, 2026-09-04"}, {"text": "VLCC 운임 사상 최고 — Gulf of Oman-Far East $55.55/mt(9/4). LR1 호르무즈 내부 선적 w810(외부 대비 w600 이상 프리미엄).", "src": "Platts, 2026-09-08"}]}], "outlooks": {"brent": {"icon": "↔", "pts": ["호르무즈 통항 회복 여부 및 이란-오만 임시 항로 협상 타결 시 하방 압력", "사우디 남부 시설 재가동 지연 및 추가 공격 시 $105~108/bbl 재시험 가능"]}, "wti": {"icon": "↔", "pts": ["USGC 재고 증가(247.5mb, 8월 중순 이후 최고)가 단기 상방 제한", "아시아 WTI Midland 수요 지속 시 $100/bbl 지지선 유지 전망"]}, "sm": {"icon": "▼", "pts": ["전일 급등 후 조정 국면 — 동중국 재고 저점 및 인도 수요가 하방 지지", "Formosa No.2 SM 유닛 재가동 본격화 시 공급 증가로 추가 하락 가능"]}, "bd": {"icon": "—", "pts": ["5거래일 보합 지속 — 공급 타이트니스와 수요 부진의 균형 상태 유지 전망", "S-Oil Shaheen BD 유닛(20만mt/y) 상업 생산 개시 시 공급 증가 요인"]}, "naph": {"icon": "▲", "pts": ["중동 공급 차질 우려 및 LR1 운임 급등이 단기 상방 압력 지속", "호르무즈 통항 정상화 신호 시 급등분 일부 반납 가능성"]}, "benz": {"icon": "▲", "pts": ["9월 CP 상향 기대($1,035/mt) 및 동중국 재고 저점이 가격 지지", "가솔린 블렌딩 수요 지속 및 Lotte BTX 유닛 영구 폐쇄로 한국 수출 감소"]}, "pp": {"icon": "↔", "pts": ["프로필렌 역마진 구조 지속 시 생산 감소로 가격 지지 가능", "중국 신규 PP 설비 4Q 가동 예정(Huajin Aramco 100만mt/y 등) — 공급 증가 압력"]}}, "info_tag_labels": {"geo": "지정학", "plant": "플랜트", "maint": "정비", "opec": "OPEC+", "logistics": "물류", "util": "가동률", "reg": "규제", "macro": "매크로"}, "infos": [{"tag": "geo", "text": "이란-오만, 호르무즈 임시 항로 협상 최종 단계 진입 — IMO 등록 임박 가능성. 9/7 통항 22척 중 9척 AIS 소등 상태로 준수 이동.", "src": "S&P Global CAS, 2026-09-08"}, {"tag": "plant", "text": "PetroChina 화베이 정유소(20만b/d) 전체 정기보수 개시(9/1, 약 52일 예정) — 중국 9월 성수기 수급에 영향.", "src": "Platts, 2026-09-04"}, {"tag": "maint", "text": "Formosa Petrochemical Mailiao No.3 크래커(120만mt/y) 9월 초 재가동 — 에탄 전환 개조 완료 후 2027년 초 에탄 크래커 전환 예정.", "src": "Asian Petrochemical Feedstock Market Outlook, 2026-09-04"}, {"tag": "opec", "text": "OPEC+ 10월 자발적 감산 쿼터 증산 일시 중단 합의(9/6). 7월 기준 실제 생산량 쿼터 대비 630만b/d 하회. 다음 회의 10/4 예정.", "src": "OPEC Secretariat, 2026-09-06"}, {"tag": "logistics", "text": "VLCC 운임 사상 최고 — Gulf of Oman-Far East $55.55/mt(9/4). LR1 호르무즈 내부 선적 w810(Jubail-Japan, 9/15). 일부 선주 호르무즈 진입 거부.", "src": "Platts, 2026-09-08"}, {"tag": "util", "text": "한국 Hanwha TotalEnergies Daesan 크래커 2기 85% 가동(9월 안정 유지). S-Oil RFCC 70%(8월 85%→9월 70% 감소). Lotte Chemical Yeosu 크래커 70~75% 유지.", "src": "Asia-Pacific Arab Gulf Marketscan, 2026-09-08"}, {"tag": "reg", "text": "브라질, PE·PP 수입관세 20% 1년 연장(2026년 10월 17일 발효). PVC는 12.6%로 환원. ABS 관세 20% 유지.", "src": "Platts, 2026-09-07"}, {"tag": "macro", "text": "일본 7월 미국산 원유 수입 2,730만 배럴(역대 최고, YoY +361%). 중동 의존도 58.9%(1951년 이후 최저). 한국도 7월 원유 수입 전년 대비 증가.", "src": "METI, 2026-09-01"}], "ai_narrative_lbl": "📡 핵심 흐름 내러티브", "ai_narrative": "이번 주 시장을 관통하는 핵심 흐름은 <em>\"지정학 리스크 프리미엄의 구조화\"</em>다. 호르무즈 통항 선박 수가 8월 말 평균 20척에서 9월 초 8척으로 급감했다가 9월 7일 22척으로 반등하는 등 극단적 변동성이 지속되면서, 원유·나프타·LPG 가격에 단순한 수급 이상의 지정학 프리미엄이 구조적으로 내재화되고 있다. 동시에 아시아 석유화학 시장은 \"비싼 원료 + 약한 수요\"라는 이중 압박 속에서 SM·PP 등 주요 상품의 마진이 음전 또는 역사적 저점에 근접하며, 생산자들이 가동률을 자발적으로 낮추는 공급 자율 조정 국면에 진입했다. 4분기 중국 신규 설비 가동(Huajin Aramco PP 100만mt/y 등)이 예정되어 있어, 지정학 리스크 완화 시 공급 과잉 전환 속도가 빠를 수 있다는 점이 중기 하방 리스크로 부각된다.", "signal_lbl": "📊 정량 신호 박스", "signals": [{"label": "ICE Brent 5거래일 모멘텀 (9/4→9/11)", "val": "+$8.33/bbl (+8.65%)"}, {"label": "WTI 5거래일 모멘텀 (9/3→9/11)", "val": "+$8.75/bbl (+9.58%)"}, {"label": "Brent-WTI 스프레드 (9/11)", "val": "$4.56/bbl (전일 $5.15 대비 축소)"}, {"label": "SM 5거래일 모멘텀 (9/4→9/11)", "val": "+$57/mt (+4.45%)"}, {"label": "BD 5거래일 모멘텀 (9/4→9/11)", "val": "0.00 (보합 고착)"}, {"label": "Naphtha 5거래일 모멘텀 (9/4→9/11)", "val": "+$105.5/mt (+12.22%)"}, {"label": "Benzene 5거래일 모멘텀 (9/4→9/11)", "val": "+$102.67/mt (+9.34%)"}, {"label": "PP 5거래일 모멘텀 (9/4→9/11)", "val": "+$45/mt (+4.00%)"}, {"label": "호르무즈 통항 (9/7)", "val": "22척 (8/28 이후 최고, 주간 93척↓)"}, {"label": "ABS 생산 마진 (9/4 기준)", "val": "−$124.20/mt (6개월 최저)"}, {"label": "VLCC Gulf of Oman-Far East 운임", "val": "$55.55/mt (사상 최고, 9/4)"}, {"label": "동중국 SM 항구 재고 (9/4)", "val": "40,800mt (20개월 최저)"}], "flag_lbl": "🚨 이상패턴 플래그", "flags": ["⚠️ <strong>나프타 단일일 +6.60% 급등</strong> — 9/11 C+F Japan $968.5/mt. 주간 누적 +12.22%는 2026년 내 최대 단기 급등 구간. 중동 공급 차질 우려의 현물 시장 직접 반영.", "⚠️ <strong>BD $1,600/mt 5거래일 보합 고착</strong> — 공급 타이트니스와 수요 부진의 균형점에서 가격이 고착화. 이탈 방향이 시장 방향성 결정의 핵심 신호.", "⚠️ <strong>ABS 생산 마진 역전 심화</strong> — 피드스톡 비용 $1,696.90/mt vs ABS 가격 $1,570/mt(9/9). 마진 −$126.90/mt로 생산자 손실 구조 지속. 가동률 추가 감축 가능성.", "⚠️ <strong>Brent $100/bbl 상회 구조화</strong> — 9/9 이후 3거래일 연속 $100/bbl 이상 결제. 2026년 5월 22일 이후 최고 수준. 지정학 프리미엄의 구조적 내재화 신호."], "exec_lbl": "👔 경영진 3줄 요약", "exec_rows": [{"num": "①", "label": "기(起):", "text": "미-이란 충돌 재점화로 Brent $104.61/bbl·WTI $100.05/bbl 유지, 나프타 C+F Japan이 단일일 +6.60% 급등하며 아시아 원료 조달 비용이 구조적 고점 국면에 진입."}, {"num": "②", "label": "승(承):", "text": "SM·벤젠은 주간 기준 강세이나 전일 조정, BD는 $1,600/mt 보합 고착, PP는 $1,170/mt 보합 — 원가 상승분이 다운스트림으로 전가되지 못하는 마진 압박 구조 지속."}, {"num": "③", "label": "결(結):", "text": "호르무즈 통항 회복 여부와 4Q 중국 신규 설비 가동 타이밍이 단기 방향성의 핵심 변수 — 지정학 완화 시 공급 과잉 전환 속도가 빠를 수 있어 조달 포지션 분산 및 헤지 전략 재검토 권고."}], "ct_labels": ["선", "막대", "곡선"], "chart_sec_note": "", "source_bar": ["심볼: ICLL001 · NMCL001 · AAMFI00 · AAWWL00 · PAAAD00 · PHASM05 · PHBIK00", "일간 발표 기준일: 2026-09-04 ~ 2026-09-11 (최근 6거래일) · Platts Daily Assessment(bate=c) / ICE·NYMEX Settlement", "ABS·AN: 오늘(2026-09-12, 토) 비발표일 — 전 섹션 생략", "참고 리포트: Platts North Sea Crude Daily · US Pipeline Crude Daily · Asian PP/ABS/ACN Commentary · Asian Petrochemical Feedstock Market Outlook(929) · Daily Update on the War with Iran · Global Crude Oil Markets Short-Term Outlook(Sep 2026) · Global Aromatics Supply and Demand Short-Term Outlook(Sep 2026)"]}, "en": {"title": "📊 Petrochemical Feedstock Procurement Daily Market Report", "sub1": "Assessment Date: 2026-09-11 (Daily) · Basis: Day-on-Day (DoD) / vs. Prior Settlement", "sub2": "ABS/AN: Not published this cycle (Sat) — fully omitted from this report | 7 daily products shown", "btn_img": "🖼 Save Image", "btn_pdf": "📄 Save PDF", "s1": "Today's Closing / Settlement Prices", "s2": "Price Drivers", "s3": "Short-Term Outlook (Next 1-3 Trading Days)", "s4": "Additional Information", "s5": "AI Outlook", "s6": "Price Charts (7 Daily Products)", "badges": ["Intro", "Development", "Turn", "Turn-Supplement", "Conclusion", "Appendix"], "kpi_unit": {"fut": "USD/bbl · Futures Settlement", "d": "USD/mt · Platts Close"}, "basis": {"fut": "vs. Prior Settlement", "d": "Day-on-Day (DoD)"}, "tbl_headers": ["Product", "Symbol", "Close/Settlement", "Unit", "Change", "% Change", "Direction", "Basis"], "footnote": ["※ ICE Brent Mo01 (ICLL001) / WTI Mo01 (NMCL001): exchange futures settlement, vs. prior settlement.", "※ SM/BD/Naphtha/Benzene/PP: Platts Daily Assessment (bate=c), today's assessed close, day-on-day (DoD).", "※ ABS (PHAHF00, published Wednesdays) / AN (PHAOO00, published Tuesdays): not published today (2026-09-12, Sat) — fully omitted from this report."], "summary_lbl": "📌 Overall Summary", "summary": "On September 11, crude futures settled broadly lower on profit-taking following the prior day's sharp rally (Brent $107.63, WTI $102.48), though Brent held above $100/bbl, with a geopolitical risk premium now structurally embedded in prices. Naphtha (C+F Japan) posted an unusual surge of +$60/mt (+6.60%) from the prior day, hitting a weekly high, as concerns over Middle East supply disruption following the strike on southern Saudi facilities fed directly through to the Asian spot market. SM corrected (−$30/mt) after the prior day's rally, while BD held flat at $1,600/mt for a fifth consecutive session, with tight supply supporting the downside. Benzene edged lower but continued a strong weekly uptrend from $1,099 to $1,201.67/mt, while PP held flat at $1,170/mt for a second day, not yet fully reflecting the rise in feedstock costs.", "prod_commentary_lbl": "Product-by-Product Commentary", "names": {"brent": "ICE Brent Mo01", "wti": "WTI Mo01", "sm": "SM CFR China", "bd": "BD CFR China", "naph": "Naphtha C+F Japan", "benz": "Benzene FOB Korea", "pp": "PP Raffia CFR FEA"}, "product_commentary": {"brent": "Following the sinking of five Iranian tankers by U.S. forces and Iran's retaliatory strikes on September 9, which pushed Brent past $101.21/bbl, the contract surged further to $107.63/bbl on September 10 — its highest since May 22. On September 11, profit-taking combined with news of rising USGC crude inventories (+2.43mb to 247.5mb) drove Brent down to a $104.61/bbl settlement. Supply-side risks remain in place, including Saudi Arabia's East-West pipeline shutdown and the continued outage at the Jazan refinery. Strait of Hormuz transits recovered modestly to 22 vessels on September 7 (the highest since August 28), though the weekly total of 93 vessels was down from 116 the previous week.", "wti": "WTI surged from $96.05/bbl on September 9 to $102.48/bbl on September 10, then eased slightly to $100.05/bbl on September 11, narrowly holding the $100/bbl level. The USGC sour crude differential, based on Mars, stood at WTI+$3/bbl, down 75 cents from the prior day, reflecting the rise in USGC inventories. The Brent-WTI spread narrowed slightly to $4.56/bbl on September 11 from $5.15/bbl the previous day. Atlantic Basin crude tightness persists, with the European delivered premium for WTI Midland holding above $10/bbl over Dated Brent amid strong Asian demand.", "sm": "SM surged from $1,324/mt on September 9 to $1,369/mt on September 10, before correcting to $1,339/mt on September 11. On a weekly basis, it rose +$57/mt from $1,282 to $1,339, driven by a combination of crude strength and a sharp drop in East China port inventories (40,800 mt, a 20-month low). Formosa Chemicals' Mailiao No.2 SM unit (350,000 mt/year) restarted in September but at only 70% utilization, limiting the supply recovery. Continued Indian imports of Chinese SM and low inventory levels are supporting the downside in the near term.", "bd": "BD has held flat at $1,600/mt for five consecutive sessions from September 4 through 11. The price, which surged +26% since early August, appears frozen at that level: supply tightness from Korean cracker maintenance and rising exports supports the floor, while weak downstream ABS and synthetic rubber demand caps further upside. BD extraction units in China are restarting following the August maintenance peak, but the supply recovery remains gradual amid broadly reduced cracker utilization across East Asia. October contracts show a backwardation structure versus September, reflecting near-term supply tightness.", "naph": "Naphtha posted an unusual surge of +$60/mt (+6.60%) on September 11, setting a new weekly high. This directly reflects Asian spot market concerns over Middle East naphtha supply disruption following the September 8 strike on southern Saudi energy facilities, with the logistics risk premium spiking as LR1 tanker freight for loadings inside the Strait of Hormuz ran more than w600 above loadings outside it. Korea's naphtha export restrictions (extended through January 2027) and the permanent closure of Lotte Chemical's Daesan cracker are also structurally deepening the tightness in Asian naphtha supply-demand.", "benz": "Benzene edged down −$10.66/mt on September 11, but continued a strong weekly uptrend of +$102.67/mt from $1,099 to $1,201.67/mt. Following Sinopec's East China benzene list price hike to RMB 9,050/mt on September 7, East China port inventories dropped sharply to 45,000 mt (as of September 2, down 11,000 mt from the prior week), keeping supply tight. Gasoline blending demand (via ethylbenzene) continues to structurally support benzene prices across the U.S., Europe, and Asia, with expectations building for an upward revision to the September contract price (CP) to $1,035/mt.", "pp": "PP rose to $1,170/mt on September 9 and has held flat for a second day. On a weekly basis, it rose +$45/mt from $1,125 to $1,170, mainly driven by higher propylene prices amid crude strength. A negative-margin structure has emerged in China, with propylene prices exceeding PP prices, weakening producers' incentive to run PP units, while pre-Golden Week (October) restocking demand is providing some price support. Conversely, margin pressure on Vietnamese and Southeast Asian converters is limiting buying interest, and port congestion plus higher freight rates are curbing import demand."}, "factor_tag_labels": {"supply": "Supply", "demand": "Demand", "macro": "Macro"}, "factors": [{"tag": "supply", "items": [{"text": "Saudi East-West pipeline shut (9/11) — precautionary shutdown following the strike on southern facilities. Jazan refinery (400,000 b/d) remains offline.", "src": "Platts, 2026-09-11"}, {"text": "Hormuz transits at 22 vessels on 9/7 (highest since 8/28) → weekly total of 93 vessels (down from 116 the prior week). 13 of the 9/7 transits had AIS switched off.", "src": "S&P Global CAS, 2026-09-08"}, {"text": "Middle East refinery outages of roughly 1.4 mb/d as of 9/8. Kuwait's Al-Zour (615,000 b/d) is operating with one CDU unit.", "src": "Daily Update on the War with Iran, 2026-09-08"}, {"text": "Formosa's Mailiao No.2 SM unit restarted in September (70% utilization). Jiangsu Sailboat's ACN No.2 unit restarted on 9/8.", "src": "Platts, 2026-09-08"}, {"text": "Korea's naphtha export restrictions extended through January 2027. Lotte Chemical's Daesan cracker and BD extraction unit are permanently closed.", "src": "Asian Petrochemical Feedstock Market Outlook, 2026-09-04"}]}, {"tag": "demand", "items": [{"text": "Asian crude demand remains strong — Vitol booked two Forties VLCC cargoes for September loading to China. The North Sea Dated Brent physical differential is at its highest in several months.", "src": "Platts North Sea Crude, 2026-09-10"}, {"text": "Gasoline blending demand — toluene, benzene, and MX demand remains strong across Asia, Europe, and the U.S. East China toluene port inventories at 12,500 mt (down 20.9% WoW).", "src": "Platts, 2026-09-07"}, {"text": "China PP demand — pre-Golden Week restocking and seasonal demand hopes, though converter margin pressure is limiting buying interest.", "src": "Asian PP Commentary, 2026-09-09"}, {"text": "ABS demand weak — buyers remain on the sidelines, and producers are struggling to pass through higher feedstock costs. Production margin at −$124.20/mt (as of 9/4, a 6-month low).", "src": "Platts, 2026-09-07"}]}, {"tag": "macro", "items": [{"text": "OPEC+ agreed to pause the October quota increase (virtual meeting on 9/6) — its first freeze decision since April.", "src": "OPEC Secretariat, 2026-09-06"}, {"text": "Brent-WTI spread: $4.56/bbl on 9/11 (narrowed from $5.15/bbl the prior day). Strong Asian demand keeps the WTI Midland European delivered premium above $10/bbl over Dated Brent.", "src": "Platts, 2026-09-11"}, {"text": "U.S. nonfarm payrolls +162,000 (August, far above the 55,000 forecast) → renewed focus on a possible Fed rate hike, raising demand-suppression concerns.", "src": "ING Think, 2026-09-04"}, {"text": "VLCC freight at an all-time high — Gulf of Oman-Far East at $55.55/mt (9/4). LR1 loadings inside Hormuz at w810 (a premium of more than w600 over loadings outside).", "src": "Platts, 2026-09-08"}]}], "outlooks": {"brent": {"icon": "↔", "pts": ["Downside pressure possible if Hormuz transits recover or an Iran-Oman interim shipping corridor deal is reached", "A retest of $105-108/bbl is possible if the restart of Saudi southern facilities is delayed or further attacks occur"]}, "wti": {"icon": "↔", "pts": ["Rising USGC inventories (247.5mb, the highest since mid-August) are capping near-term upside", "The $100/bbl support is expected to hold if Asian demand for WTI Midland continues"]}, "sm": {"icon": "▼", "pts": ["In a correction phase after the prior surge — low East China inventories and Indian demand support the downside", "Further declines possible if Formosa's No.2 SM unit ramps up, adding to supply"]}, "bd": {"icon": "—", "pts": ["Flat for five sessions — expected to remain balanced between tight supply and weak demand", "S-Oil's Shaheen BD unit (200,000 mt/year) starting commercial production would add to supply"]}, "naph": {"icon": "▲", "pts": ["Concerns over Middle East supply disruption and surging LR1 freight continue to drive near-term upside pressure", "Some of the recent surge could be given back if Hormuz transits show signs of normalizing"]}, "benz": {"icon": "▲", "pts": ["Expectations for a higher September CP ($1,035/mt) and low East China inventories are supporting prices", "Continued gasoline blending demand and reduced Korean exports following the permanent closure of Lotte's BTX unit"]}, "pp": {"icon": "↔", "pts": ["If the negative propylene-margin structure persists, reduced production could support prices", "New Chinese PP capacity coming online in Q4 (e.g., Huajin Aramco at 1 million mt/year) poses supply-increase pressure"]}}, "info_tag_labels": {"geo": "Geopolitics", "plant": "Plant", "maint": "Maintenance", "opec": "OPEC+", "logistics": "Logistics", "util": "Utilization", "reg": "Regulation", "macro": "Macro"}, "infos": [{"tag": "geo", "text": "Iran-Oman talks on a temporary Hormuz shipping corridor have entered their final stage — IMO registration may be imminent. Of the 22 vessels transiting on 9/7, 9 moved with AIS switched off, in apparent compliance.", "src": "S&P Global CAS, 2026-09-08"}, {"tag": "plant", "text": "PetroChina's Huabei refinery (200,000 b/d) began a full turnaround on 9/1 (approx. 52 days) — affecting China's September peak-season supply-demand balance.", "src": "Platts, 2026-09-04"}, {"tag": "maint", "text": "Formosa Petrochemical's Mailiao No.3 cracker (1.2 million mt/year) restarted in early September, following completion of its ethane-conversion retrofit; full conversion to an ethane cracker is planned for early 2027.", "src": "Asian Petrochemical Feedstock Market Outlook, 2026-09-04"}, {"tag": "opec", "text": "OPEC+ agreed on 9/6 to pause the planned October increase to its voluntary output-cut quotas. As of July, actual production ran 6.3 mb/d below quota. The next meeting is scheduled for 10/4.", "src": "OPEC Secretariat, 2026-09-06"}, {"tag": "logistics", "text": "VLCC freight at an all-time high — Gulf of Oman-Far East at $55.55/mt (9/4). LR1 loadings inside Hormuz at w810 (Jubail-Japan, 9/15). Some shipowners are refusing to enter the Strait of Hormuz.", "src": "Platts, 2026-09-08"}, {"tag": "util", "text": "Korea's Hanwha TotalEnergies runs both Daesan crackers at 85% (stable through September). S-Oil's RFCC is at 70% (down from 85% in August). Lotte Chemical's Yeosu cracker holds at 70-75%.", "src": "Asia-Pacific Arab Gulf Marketscan, 2026-09-08"}, {"tag": "reg", "text": "Brazil extended its 20% import tariff on PE/PP for one year (effective October 17, 2026). The PVC tariff reverts to 12.6%. The ABS tariff remains at 20%.", "src": "Platts, 2026-09-07"}, {"tag": "macro", "text": "Japan's July imports of U.S. crude reached 27.3 million barrels (an all-time high, +361% YoY), with Middle East dependence falling to 58.9%, the lowest since 1951. Korea's July crude imports also rose year-on-year.", "src": "METI, 2026-09-01"}], "ai_narrative_lbl": "📡 Key Theme Narrative", "ai_narrative": "The key theme running through this week's market is <em>\"the structural embedding of a geopolitical risk premium.\"</em> With Hormuz transits swinging wildly — from an average of 20 vessels in late August to just 8 in early September, then rebounding to 22 on September 7 — a geopolitical premium well beyond simple supply-demand fundamentals is becoming structurally embedded in crude, naphtha, and LPG prices. At the same time, Asia's petrochemical market is caught in a double squeeze of \"expensive feedstock plus weak demand,\" with margins for key products such as SM and PP turning negative or nearing historic lows, pushing producers into a phase of voluntary supply rationalization through lower run rates. With new Chinese capacity due online in Q4 (such as Huajin Aramco's PP unit at 1 million mt/year), the risk that any easing of geopolitical tensions could trigger a rapid swing into oversupply stands out as a key medium-term downside risk.", "signal_lbl": "📊 Quantitative Signal Box", "signals": [{"label": "ICE Brent 5-Day Momentum (9/4→9/11)", "val": "+$8.33/bbl (+8.65%)"}, {"label": "WTI 5-Day Momentum (9/3→9/11)", "val": "+$8.75/bbl (+9.58%)"}, {"label": "Brent-WTI Spread (9/11)", "val": "$4.56/bbl (narrowed from $5.15 the prior day)"}, {"label": "SM 5-Day Momentum (9/4→9/11)", "val": "+$57/mt (+4.45%)"}, {"label": "BD 5-Day Momentum (9/4→9/11)", "val": "0.00 (frozen flat)"}, {"label": "Naphtha 5-Day Momentum (9/4→9/11)", "val": "+$105.5/mt (+12.22%)"}, {"label": "Benzene 5-Day Momentum (9/4→9/11)", "val": "+$102.67/mt (+9.34%)"}, {"label": "PP 5-Day Momentum (9/4→9/11)", "val": "+$45/mt (+4.00%)"}, {"label": "Hormuz Transits (9/7)", "val": "22 vessels (highest since 8/28; weekly total down to 93)"}, {"label": "ABS Production Margin (as of 9/4)", "val": "−$124.20/mt (6-month low)"}, {"label": "VLCC Gulf of Oman-Far East Freight", "val": "$55.55/mt (all-time high, 9/4)"}, {"label": "East China SM Port Inventory (9/4)", "val": "40,800mt (20-month low)"}], "flag_lbl": "🚨 Anomaly Flags", "flags": ["⚠️ <strong>Naphtha jumped +6.60% in a single session</strong> — C+F Japan at $968.5/mt on 9/11. The weekly cumulative gain of +12.22% is the largest short-term surge of 2026 to date, a direct reflection of Middle East supply disruption concerns in the spot market.", "⚠️ <strong>BD frozen flat at $1,600/mt for five sessions</strong> — the price has become locked at the balance point between tight supply and weak demand. Whichever direction it breaks will be a key signal for the market's next move.", "⚠️ <strong>ABS production margin inversion deepens</strong> — feedstock cost of $1,696.90/mt vs. an ABS price of $1,570/mt (9/9). A margin of −$126.90/mt keeps producers in a loss-making structure, raising the risk of further utilization cuts.", "⚠️ <strong>Brent's move above $100/bbl looks structural</strong> — settled above $100/bbl for three consecutive sessions since 9/9, the highest level since May 22, 2026, signaling the geopolitical premium is becoming structurally embedded."], "exec_lbl": "👔 Executive 3-Line Summary", "exec_rows": [{"num": "①", "label": "Intro:", "text": "With the US-Iran conflict flaring up again, Brent held at $104.61/bbl and WTI at $100.05/bbl, while naphtha (C+F Japan) jumped +6.60% in a single session, pushing Asian feedstock procurement costs into a structurally elevated phase."}, {"num": "②", "label": "Development:", "text": "SM and benzene are firm on a weekly basis but corrected from the prior day; BD is frozen flat at $1,600/mt and PP flat at $1,170/mt — the margin-squeeze structure, where higher costs cannot be passed downstream, persists."}, {"num": "③", "label": "Conclusion:", "text": "Whether Hormuz transits recover and the timing of new Chinese capacity coming online in Q4 are the key variables for near-term direction — since any easing of geopolitical tensions could trigger a rapid swing into oversupply, diversifying procurement positions and revisiting hedging strategy is recommended."}], "ct_labels": ["Line", "Bar", "Smooth"], "chart_sec_note": "", "source_bar": ["Symbols: ICLL001 · NMCL001 · AAMFI00 · AAWWL00 · PAAAD00 · PHASM05 · PHBIK00", "Daily Assessment Date Range: 2026-09-04 to 2026-09-11 (last 6 trading days) · Platts Daily Assessment (bate=c) / ICE-NYMEX Settlement", "ABS/AN: not published today (2026-09-12, Sat) — omitted from all sections", "Reference Reports: Platts North Sea Crude Daily · US Pipeline Crude Daily · Asian PP/ABS/ACN Commentary · Asian Petrochemical Feedstock Market Outlook(929) · Daily Update on the War with Iran · Global Crude Oil Markets Short-Term Outlook (Sep 2026) · Global Aromatics Supply and Demand Short-Term Outlook (Sep 2026)"]}, "ja": {"title": "📊 石油化学原料調達デイリー市況レポート", "sub1": "評価基準日: 2026-09-11(日次) · 比較基準: 前日比(DoD) / 前日決済価格比", "sub2": "ABS・AN: 今週非発表日(土) — 本レポートで完全に省略 | 日次7商品を固定表示", "btn_img": "🖼 画像保存", "btn_pdf": "📄 PDF保存", "s1": "当日終値・決済価格の状況", "s2": "変動要因", "s3": "短期見通し(翌営業日~2~3営業日)", "s4": "追加情報", "s5": "AI見通し", "s6": "価格チャート(日次7商品)", "badges": ["起", "承", "転", "転-補強", "結", "付属"], "kpi_unit": {"fut": "USD/bbl · 先物決済価格", "d": "USD/mt · Platts終値"}, "basis": {"fut": "前日決済価格比", "d": "前日比(DoD)"}, "tbl_headers": ["商品", "シンボル", "終値/決済価格", "単位", "変動幅", "騰落率", "方向", "比較基準"], "footnote": ["※ ICE Brent Mo01(ICLL001)・WTI Mo01(NMCL001): 取引所先物決済価格(Settlement)、前日決済価格比基準。", "※ SM・BD・Naphtha・Benzene・PP: Platts Daily Assessment(bate=c)基準の当日発表終値、前日比(DoD)。", "※ ABS(PHAHF00、水曜発表)・AN(PHAOO00、火曜発表): 本日(2026-09-12、土)非発表日 — 本レポート全セクションで完全に省略。"], "summary_lbl": "📌 全体要約", "summary": "9月11日、原油先物は前日の急騰(Brent $107.63、WTI $102.48)を受けた利益確定売りで軒並み下落決済となったが、Brentは依然$100/bblを上回る水準を維持しており、地政学リスクプレミアムが構造的に内在化した状態にある。ナフサ(C+F Japan)は前日比+$60/mt(+6.60%)という異例の急騰を記録し週間最高値を更新したが、これはサウジ南部施設への攻撃を受けた中東発供給混乱懸念がアジア現物市場に直接反映された結果である。SMは前日の急騰後に調整(−$30/mt)を受け、BDは$1,600/mtで5営業日連続横ばいを維持し、供給タイトさが価格の下値を支えている。ベンゼンは小幅下落したものの、週間ベースでは$1,099→$1,201.67/mtという強い上昇基調を継続しており、PPは$1,170/mtで2日目の横ばいとなり、原料費上昇分をまだ完全には反映しきれていない状況だ。", "prod_commentary_lbl": "商品別市況コメンタリー", "names": {"brent": "ICE Brent Mo01", "wti": "WTI Mo01", "sm": "SM CFR中国", "bd": "BD CFR中国", "naph": "ナフサC+F日本", "benz": "ベンゼンFOB韓国", "pp": "PP Raffia CFR FEA"}, "product_commentary": {"brent": "9月9日に米軍がイランのタンカー5隻を撃沈し、イランが報復攻撃を行ったことでBrentが$101.21/bblを突破、9月10日には$107.63/bblまで急騰し5月22日以来の高値を記録した。9月11日には利益確定売りとUSGC原油在庫増加(+2.43mb、247.5mb)のニュースが重なり、$104.61/bblで下落決済となった。サウジの東西パイプライン遮断やJazan製油所の稼働停止など供給面のリスクは依然として残っており、ホルムズ海峡通航船舶数は9月7日に22隻(8月28日以来の高水準)へとやや回復したものの、週間合計では93隻と前週の116隻から減少した。", "wti": "WTIは9月9日の$96.05/bblから9月10日には$102.48/bblまで急騰した後、9月11日に$100.05/bblとやや下落し$100/bblラインを辛うじて維持した。USGCのサワー原油格差はMars基準でWTI+$3/bblとなり、前日比75セント低下しUSGC在庫増加を反映した。Brent-WTIスプレッドは9月11日時点で$4.56/bblとなり、前日($5.15/bbl)からやや縮小した。アジア需要の強さを背景にWTI Midlandの欧州着プレミアムがDated Brent対比$10/bbl以上を維持するなど、大西洋バーレンの原油需給タイトさが続いている。", "sm": "SMは9月9日の$1,324/mtから9月10日に$1,369/mtまで急騰した後、9月11日に$1,339/mtへと調整された。週間ベースでは$1,282→$1,339/mtと+$57/mt上昇したが、これは原油高と華東港湾在庫の急減(40,800mt、20カ月ぶり低水準)が複合的に作用した結果である。Formosa ChemicalsのMailiao第2SMユニット(年産35万mt)が9月に再稼働したが、稼働率は70%にとどまり供給回復は限定的。インドによる中国産SMの輸入継続と低在庫水準が短期的な価格の下支えとなっている。", "bd": "BDは9月4日から11日まで5営業日連続で$1,600/mtに横ばいを維持した。8月初旬以降+26%急騰した価格がその水準で固着した格好で、韓国クラッカーの修理や輸出増加による供給タイトさが下値を支える一方、川下のABS・合成ゴム需要の低迷がさらなる上昇を抑制している。中国国内のBD抽出ユニットは8月の修理ピーク後に再稼働が進んでいるが、東アジア全体でのクラッカー稼働率低下により供給回復のペースは緩やかだ。10月限は9月限に対しバックワーデーション構造が形成されており、短期的な供給タイトさを反映している。", "naph": "ナフサは9月11日に前日比+$60/mt(+6.60%)という異例の急騰を記録し、週間最高値を更新した。これはサウジ南部のエネルギー施設への攻撃(9月8日)を受けた中東発ナフサ供給混乱懸念がアジア現物市場に直接反映されたもので、LR1タンカーのホルムズ海峡内側積みの運賃が外側対比でw600以上高く形成されるなど物流リスクプレミアムが急騰した。韓国のナフサ輸出制限措置(2027年1月まで延長)とロッテケミカル大山クラッカーの恒久閉鎖も、アジアのナフサ需給タイトさを構造的に深刻化させている。", "benz": "ベンゼンは9月11日に前日比−$10.66/mtとやや下落したが、週間ベースでは$1,099→$1,201.67/mtと+$102.67/mtの強い上昇基調を継続した。Sinopecの華東ベンゼンリスト価格が9月7日に9,050元/mtへ引き上げられたのに続き、華東港湾在庫が45,000mt(9月2日時点、前週比−11,000mt)へと急減し、供給タイトさが続いている。ガソリンブレンディング需要(エチルベンゼン経由)が米国・欧州・アジア全域でベンゼン価格を支える構造的要因として作用しており、9月契約価格(CP)は$1,035/mtへの上方修正期待が形成されている。", "pp": "PPは9月9日に$1,170/mtへ上昇した後、2日目の横ばいを維持した。週間ベースでは$1,125→$1,170/mtと+$45/mt上昇したが、これは原油高に伴うプロピレン価格の上昇が主な要因である。中国国内ではプロピレン価格がPP価格を上回る逆マージン構造が形成され、生産者のPP製造意欲が弱まっている一方、10月の国慶節を控えた在庫確保需要が一部で価格を支えている。他方でベトナム・東南アジアのコンバーターのマージン圧迫により購買意欲は限定的で、港湾混雑や運賃上昇が輸入需要を抑制している。"}, "factor_tag_labels": {"supply": "供給", "demand": "需要", "macro": "マクロ"}, "factors": [{"tag": "supply", "items": [{"text": "サウジ東西パイプライン遮断(9/11) — 南部施設攻撃を受けた予防的停止。Jazan製油所(40万b/d)は稼働停止継続。", "src": "Platts, 2026-09-11"}, {"text": "ホルムズ通航は9/7に22隻(8/28以来の高水準)→週間合計93隻(前週116隻から減少)。9/7通航のうち13隻がAIS消灯。", "src": "S&P Global CAS, 2026-09-08"}, {"text": "中東の製油所停止は9/8時点で約1.4mb/d。クウェートAl-Zour(61.5万b/d)はCDU1基のみ稼働中。", "src": "Daily Update on the War with Iran, 2026-09-08"}, {"text": "Formosa Mailiao第2SMユニットが9月再稼働(稼働率70%)。Jiangsu Sailboat ACN第2ユニットが9/8に再稼働。", "src": "Platts, 2026-09-08"}, {"text": "韓国のナフサ輸出制限が2027年1月まで延長。ロッテケミカル大山クラッカー・BD抽出ユニットが恒久閉鎖。", "src": "Asian Petrochemical Feedstock Market Outlook, 2026-09-04"}]}, {"tag": "demand", "items": [{"text": "アジアの原油需要は強さを維持 — VitolがFortiesのVLCC2隻を9月積みで中国向けに手配。北海Dated Brentの現物格差は数カ月ぶりの高水準。", "src": "Platts North Sea Crude, 2026-09-10"}, {"text": "ガソリンブレンディング需要 — アジア・欧州・米国全域でトルエン・ベンゼン・MX需要が継続。華東トルエン港湾在庫は12,500mt(WoW −20.9%)。", "src": "Platts, 2026-09-07"}, {"text": "中国のPP需要 — 国慶節前の在庫確保および季節的需要への期待。ただしコンバーターのマージン圧迫で購買意欲は限定的。", "src": "Asian PP Commentary, 2026-09-09"}, {"text": "ABS需要は低迷 — 買い手の様子見が継続、原料費上昇にもかかわらず価格転嫁は困難。生産マージンは−$124.20/mt(9/4時点、6カ月ぶり低水準)。", "src": "Platts, 2026-09-07"}]}, {"tag": "macro", "items": [{"text": "OPEC+が10月クォータ増産の一時停止に合意(9/6バーチャル会合) — 4月以来初の凍結決定。", "src": "OPEC Secretariat, 2026-09-06"}, {"text": "Brent-WTIスプレッド: 9/11時点で$4.56/bbl(前日の$5.15/bblから縮小)。アジア需要の強さでWTI Midlandの欧州着プレミアムはDated Brent対比$10/bbl以上を維持。", "src": "Platts, 2026-09-11"}, {"text": "米国非農業部門雇用者数+162,000人(8月、予想55,000を大幅に上回る)→FRB利上げ可能性が再浮上、需要抑制懸念。", "src": "ING Think, 2026-09-04"}, {"text": "VLCC運賃が過去最高 — Gulf of Oman-Far Eastで$55.55/mt(9/4)。LR1のホルムズ内側積みはw810(外側対比w600超のプレミアム)。", "src": "Platts, 2026-09-08"}]}], "outlooks": {"brent": {"icon": "↔", "pts": ["ホルムズ通航の回復やイラン・オマン暫定航路合意成立時は下方圧力", "サウジ南部施設の再稼働遅延や追加攻撃発生時は$105~108/bblの再試験もあり得る"]}, "wti": {"icon": "↔", "pts": ["USGC在庫増加(247.5mb、8月中旬以来の高水準)が短期的な上値を抑制", "アジアのWTI Midland需要が続けば$100/bblの支持線維持を予想"]}, "sm": {"icon": "▼", "pts": ["前日急騰後の調整局面 — 華東在庫の低水準とインド需要が下値を支持", "Formosa第2SMユニットの本格稼働で供給増加すればさらなる下落もあり得る"]}, "bd": {"icon": "—", "pts": ["5営業日横ばい継続 — 供給タイトさと需要低迷の均衡状態を維持する見通し", "S-Oil Shaheen BDユニット(年産20万mt)の商業生産開始で供給増加要因に"]}, "naph": {"icon": "▲", "pts": ["中東供給混乱懸念とLR1運賃急騰が短期的な上方圧力を継続", "ホルムズ通航の正常化シグナルが出れば急騰分の一部反落もあり得る"]}, "benz": {"icon": "▲", "pts": ["9月CP上方修正期待($1,035/mt)と華東在庫の低水準が価格を下支え", "ガソリンブレンディング需要継続とロッテBTXユニット恒久閉鎖による韓国輸出減少"]}, "pp": {"icon": "↔", "pts": ["プロピレン逆マージン構造が続けば生産減少で価格が支えられる可能性", "中国新規PP設備が第4四半期稼働予定(Huajin Aramco年産100万mt等) — 供給増加圧力"]}}, "info_tag_labels": {"geo": "地政学", "plant": "プラント", "maint": "メンテナンス", "opec": "OPEC+", "logistics": "物流", "util": "稼働率", "reg": "規制", "macro": "マクロ"}, "infos": [{"tag": "geo", "text": "イラン・オマンのホルムズ暫定航路協議が最終段階入り — IMO登録が近い可能性。9/7の通航22隻のうち9隻がAIS消灯状態で準拠移動。", "src": "S&P Global CAS, 2026-09-08"}, {"tag": "plant", "text": "PetroChina華北製油所(20万b/d)が9/1に全体定期修理開始(約52日間予定) — 中国の9月需要期の需給に影響。", "src": "Platts, 2026-09-04"}, {"tag": "maint", "text": "Formosa PetrochemicalのMailiao第3クラッカー(年産120万mt)が9月初旬に再稼働 — エタン転換改造完了後、2027年初頭にエタンクラッカーへの転換を予定。", "src": "Asian Petrochemical Feedstock Market Outlook, 2026-09-04"}, {"tag": "opec", "text": "OPEC+が9/6、10月の自主減産クォータ増産の一時停止に合意。7月時点の実際の生産量はクォータを630万b/d下回る。次回会合は10/4予定。", "src": "OPEC Secretariat, 2026-09-06"}, {"tag": "logistics", "text": "VLCC運賃が過去最高 — Gulf of Oman-Far Eastで$55.55/mt(9/4)。LR1のホルムズ内側積みはw810(Jubail-Japan、9/15)。一部船主はホルムズ進入を拒否。", "src": "Platts, 2026-09-08"}, {"tag": "util", "text": "韓国Hanwha TotalEnergiesの大山クラッカー2基が85%稼働(9月も安定維持)。S-Oil RFCCは70%(8月85%→9月70%に低下)。ロッテケミカル麗水クラッカーは70~75%を維持。", "src": "Asia-Pacific Arab Gulf Marketscan, 2026-09-08"}, {"tag": "reg", "text": "ブラジルがPE・PP輸入関税20%を1年延長(2026年10月17日発効)。PVCは12.6%に戻す。ABS関税は20%を維持。", "src": "Platts, 2026-09-07"}, {"tag": "macro", "text": "日本の7月の米国産原油輸入量は2,730万バレル(過去最高、前年比+361%)。中東依存度は58.9%(1951年以来最低)。韓国も7月の原油輸入が前年比で増加。", "src": "METI, 2026-09-01"}], "ai_narrative_lbl": "📡 コアトレンド・ナラティブ", "ai_narrative": "今週の市場を貫く核心的な流れは<em>「地政学リスクプレミアムの構造化」</em>である。ホルムズ通航船舶数が8月末平均20隻から9月初旬に8隻へ急減し、9月7日には22隻へと反発するなど極端な変動が続く中、原油・ナフサ・LPG価格には単純な需給を超えた地政学プレミアムが構造的に内在化しつつある。同時にアジアの石油化学市場は「割高な原料+弱い需要」という二重の圧迫の中、SM・PPなど主要商品のマージンがマイナスまたは史上最低水準に近づき、生産者が稼働率を自発的に引き下げる供給自律調整局面に入っている。第4四半期には中国の新規設備稼働(Huajin Aramco PP年産100万mt等)が予定されており、地政学リスクが緩和した場合に供給過剰への転換速度が速い可能性がある点が中期的な下方リスクとして浮上している。", "signal_lbl": "📊 定量シグナルボックス", "signals": [{"label": "ICE Brent 5営業日モメンタム (9/4→9/11)", "val": "+$8.33/bbl (+8.65%)"}, {"label": "WTI 5営業日モメンタム (9/3→9/11)", "val": "+$8.75/bbl (+9.58%)"}, {"label": "Brent-WTIスプレッド (9/11)", "val": "$4.56/bbl(前日$5.15から縮小)"}, {"label": "SM 5営業日モメンタム (9/4→9/11)", "val": "+$57/mt (+4.45%)"}, {"label": "BD 5営業日モメンタム (9/4→9/11)", "val": "0.00(横ばい固着)"}, {"label": "ナフサ5営業日モメンタム (9/4→9/11)", "val": "+$105.5/mt (+12.22%)"}, {"label": "ベンゼン5営業日モメンタム (9/4→9/11)", "val": "+$102.67/mt (+9.34%)"}, {"label": "PP 5営業日モメンタム (9/4→9/11)", "val": "+$45/mt (+4.00%)"}, {"label": "ホルムズ通航 (9/7)", "val": "22隻(8/28以来最高、週間93隻に減少)"}, {"label": "ABS生産マージン (9/4時点)", "val": "−$124.20/mt(6カ月ぶり低水準)"}, {"label": "VLCC Gulf of Oman-Far East運賃", "val": "$55.55/mt(過去最高、9/4)"}, {"label": "華東SM港湾在庫 (9/4)", "val": "40,800mt(20カ月ぶり低水準)"}], "flag_lbl": "🚨 異常パターンフラグ", "flags": ["⚠️ <strong>ナフサが単一取引日で+6.60%急騰</strong> — 9/11 C+F Japan $968.5/mt。週間累計+12.22%は2026年内で最大の短期急騰区間。中東供給混乱懸念の現物市場への直接反映。", "⚠️ <strong>BDが$1,600/mtで5営業日横ばい固着</strong> — 供給タイトさと需要低迷の均衡点で価格が固着。どちらに離脱するかが市場方向性を決める核心シグナル。", "⚠️ <strong>ABS生産マージンの逆転が深刻化</strong> — フィードストックコスト$1,696.90/mt対ABS価格$1,570/mt(9/9)。マージン−$126.90/mtで生産者の損失構造が継続。稼働率のさらなる引き下げの可能性。", "⚠️ <strong>Brentの$100/bbl超えが構造化</strong> — 9/9以降3営業日連続で$100/bbl以上で決済。2026年5月22日以来の高水準。地政学プレミアムの構造的内在化のシグナル。"], "exec_lbl": "👔 経営陣向け3行要約", "exec_rows": [{"num": "①", "label": "起:", "text": "米イラン紛争の再燃でBrent $104.61/bbl・WTI $100.05/bblを維持、ナフサC+F Japanが単一取引日で+6.60%急騰し、アジアの原料調達コストが構造的な高水準局面に入った。"}, {"num": "②", "label": "承:", "text": "SM・ベンゼンは週間ベースで堅調も前日は調整、BDは$1,600/mtで横ばい固着、PPは$1,170/mtで横ばい — コスト上昇分が川下に転嫁されないマージン圧迫構造が継続。"}, {"num": "③", "label": "結:", "text": "ホルムズ通航の回復可否と第4四半期の中国新規設備稼働のタイミングが短期方向性の核心変数 — 地政学緊張緩和時は供給過剰への転換が速い可能性があり、調達ポジションの分散とヘッジ戦略の再検討を推奨。"}], "ct_labels": ["折れ線", "棒", "曲線"], "chart_sec_note": "", "source_bar": ["シンボル: ICLL001 · NMCL001 · AAMFI00 · AAWWL00 · PAAAD00 · PHASM05 · PHBIK00", "日次評価基準日: 2026-09-04~2026-09-11(直近6営業日) · Platts Daily Assessment(bate=c) / ICE・NYMEX Settlement", "ABS・AN: 本日(2026-09-12、土)非発表日 — 全セクションで省略", "参考レポート: Platts North Sea Crude Daily · US Pipeline Crude Daily · Asian PP/ABS/ACN Commentary · Asian Petrochemical Feedstock Market Outlook(929) · Daily Update on the War with Iran · Global Crude Oil Markets Short-Term Outlook(2026年9月) · Global Aromatics Supply and Demand Short-Term Outlook(2026年9月)"]}, "zh": {"title": "📊 石化原料采购每日市场报告", "sub1": "评估基准日: 2026-09-11(日度) · 比较基准: 较前日(DoD) / 较前一日结算价", "sub2": "ABS·AN: 本周非发布日(周六) — 本报告中完全省略 | 固定展示7个日度品种", "btn_img": "🖼 保存图片", "btn_pdf": "📄 保存PDF", "s1": "当日收盘价/结算价情况", "s2": "价格驱动因素", "s3": "短期展望(次一至2~3个交易日)", "s4": "补充信息", "s5": "AI展望", "s6": "价格图表(7个日度品种)", "badges": ["起", "承", "转", "转-补强", "结", "附属"], "kpi_unit": {"fut": "USD/bbl · 期货结算价", "d": "USD/mt · Platts收盘价"}, "basis": {"fut": "较前一日结算价", "d": "较前日(DoD)"}, "tbl_headers": ["品种", "代码", "收盘价/结算价", "单位", "变动幅度", "涨跌幅", "方向", "比较基准"], "footnote": ["※ ICE Brent Mo01(ICLL001)·WTI Mo01(NMCL001): 交易所期货结算价(Settlement)，较前一日结算价基准。", "※ SM·BD·Naphtha·Benzene·PP: Platts每日评估价(bate=c)基准的当日发布收盘价，较前日(DoD)。", "※ ABS(PHAHF00，周三发布)·AN(PHAOO00，周二发布): 今日(2026-09-12，周六)非发布日 — 本报告全部章节中完全省略。"], "summary_lbl": "📌 整体摘要", "summary": "9月11日，原油期货因前一日大涨(布伦特$107.63，WTI$102.48)后涌现获利了结盘而普遍下跌结算，但布伦特仍守住$100/bbl上方，地缘政治风险溢价已结构性地嵌入价格。石脑油(C+F Japan)较前一日异常大涨+$60/mt(+6.60%)，刷新周内高点，这是沙特南部设施遭袭后中东供应中断担忧直接传导至亚洲现货市场的结果。SM在前一日大涨后回调(−$30/mt)，BD在$1,600/mt连续第5个交易日持平，供应偏紧对价格下方形成支撑。苯小幅下跌，但周度仍延续从$1,099涨至$1,201.67/mt的强劲上行走势，PP在$1,170/mt连续第二天持平，尚未完全反映原料成本上涨。", "prod_commentary_lbl": "分品种市场评论", "names": {"brent": "ICE Brent Mo01", "wti": "WTI Mo01", "sm": "SM CFR中国", "bd": "BD CFR中国", "naph": "石脑油C+F日本", "benz": "苯FOB韩国", "pp": "PP Raffia CFR FEA"}, "product_commentary": {"brent": "9月9日美军击沉5艘伊朗油轮及伊朗随后的报复性攻击，推动布伦特突破$101.21/bbl，9月10日进一步飙升至$107.63/bbl，创5月22日以来新高。9月11日，获利了结盘叠加USGC原油库存增加(+243万桶至2.475亿桶)的消息，令布伦特回落结算至$104.61/bbl。供给端风险依然存在，包括沙特东西输油管道关闭及吉赞炼油厂持续停产。霍尔木兹海峡通行船只数9月7日小幅回升至22艘(8月28日以来最高)，但周度合计93艘，较前一周116艘有所减少。", "wti": "WTI从9月9日的$96.05/bbl飙升至9月10日的$102.48/bbl，随后9月11日小幅回落至$100.05/bbl，勉强守住$100/bbl关口。以Mars计价的USGC含硫原油价差为WTI+$3/bbl，较前一日下降75美分，反映了USGC库存的增加。布伦特-WTI价差9月11日收窄至$4.56/bbl，低于前一日的$5.15/bbl。受亚洲需求强劲影响，WTI Midland的欧洲到岸升水较Dated Brent维持在$10/bbl以上，大西洋盆地原油供需紧张态势持续。", "sm": "SM从9月9日的$1,324/mt飙升至9月10日的$1,369/mt，随后9月11日回调至$1,339/mt。周度来看，从$1,282涨至$1,339/mt，涨幅+$57/mt，这是原油走强与华东港口库存骤降(4.08万吨，20个月最低)共同作用的结果。台塑集团麦寮2号SM装置(年产35万吨)9月重启，但开工率仅70%，供应恢复有限。印度持续进口中国SM及低库存水平对短期价格下方形成支撑。", "bd": "BD自9月4日至11日连续5个交易日在$1,600/mt持平。自8月初以来累计+26%急涨后价格似乎在该水平固化：韩国裂解装置检修及出口增加带来的供应紧张构成支撑，而下游ABS及合成橡胶需求疲软限制了进一步上涨。中国国内BD抽提装置在8月检修高峰后陆续重启，但东亚整体裂解装置开工率偏低使供应恢复步伐缓慢。10月合约相对9月合约呈现现货升水结构，反映短期供应紧张。", "naph": "石脑油9月11日较前一日异常大涨+$60/mt(+6.60%)，刷新周内高点。这直接反映了9月8日沙特南部能源设施遭袭后市场对中东石脑油供应中断的担忧已传导至亚洲现货市场，LR1油轮霍尔木兹海峡内部装货运费较外部高出逾w600，物流风险溢价飙升。韩国的石脑油出口限制措施(延长至2027年1月)及乐天化学大山裂解装置永久关闭，也在结构性地加剧亚洲石脑油供需紧张。", "benz": "苯9月11日较前一日小幅下跌−$10.66/mt，但周度仍延续从$1,099涨至$1,201.67/mt(+$102.67/mt)的强劲上行走势。继中石化华东苯挂牌价9月7日上调至9,050元/吨后，华东港口库存骤降至4.5万吨(截至9月2日，较前一周减少1.1万吨)，供应紧张持续。汽油调和需求(经由乙苯)在美国、欧洲、亚洲各地持续构成对苯价的结构性支撑，市场对9月合同价(CP)上调至$1,035/mt的预期正在形成。", "pp": "PP于9月9日涨至$1,170/mt后连续第二天持平。周度来看，从$1,125涨至$1,170/mt(+$45/mt)，主因是原油走强带动丙烯价格上涨。中国国内形成丙烯价格高于PP价格的负利润结构，削弱了生产商生产PP的意愿，而10月国庆黄金周前的备货需求对价格形成一定支撑。另一方面，越南及东南亚加工商利润承压导致采购意愿有限，港口拥堵及运费上涨也抑制了进口需求。"}, "factor_tag_labels": {"supply": "供给", "demand": "需求", "macro": "宏观"}, "factors": [{"tag": "supply", "items": [{"text": "沙特东西输油管道关闭(9/11) — 南部设施遭袭后的预防性停运。吉赞炼油厂(40万桶/日)持续停产。", "src": "Platts, 2026-09-11"}, {"text": "霍尔木兹海峡通行量9/7为22艘(8/28以来最高)→周度合计93艘(较前一周116艘减少)。9/7通行船只中有13艘关闭AIS信号。", "src": "S&P Global CAS, 2026-09-08"}, {"text": "截至9/8，中东炼厂停产规模约140万桶/日。科威特Al-Zour(61.5万桶/日)仅一套常减压装置在运行。", "src": "Daily Update on the War with Iran, 2026-09-08"}, {"text": "台塑麦寮2号SM装置9月重启(开工率70%)。江苏斯尔邦ACN 2号装置9/8重启。", "src": "Platts, 2026-09-08"}, {"text": "韩国石脑油出口限制延长至2027年1月。乐天化学大山裂解装置及BD抽提装置永久关闭。", "src": "Asian Petrochemical Feedstock Market Outlook, 2026-09-04"}]}, {"tag": "demand", "items": [{"text": "亚洲原油需求持续强劲 — 维多对两艘Forties VLCC安排9月装船运往中国。北海Dated Brent现货价差处于数月高位。", "src": "Platts North Sea Crude, 2026-09-10"}, {"text": "汽油调和需求 — 亚洲、欧洲、美国各地甲苯、苯、MX需求持续。华东甲苯港口库存为1.25万吨(周环比−20.9%)。", "src": "Platts, 2026-09-07"}, {"text": "中国PP需求 — 国庆黄金周前备货及季节性需求预期，但加工商利润承压令采购意愿有限。", "src": "Asian PP Commentary, 2026-09-09"}, {"text": "ABS需求疲软 — 买家持续观望，原料成本上涨但难以转嫁至价格。生产利润为−$124.20/mt(截至9/4，6个月最低)。", "src": "Platts, 2026-09-07"}]}, {"tag": "macro", "items": [{"text": "OPEC+同意暂停10月配额增产(9/6视频会议) — 为4月以来首次冻结决定。", "src": "OPEC Secretariat, 2026-09-06"}, {"text": "布伦特-WTI价差: 9/11为$4.56/bbl(较前一日$5.15/bbl收窄)。亚洲需求强劲使WTI Midland欧洲到岸升水较Dated Brent维持在$10/bbl以上。", "src": "Platts, 2026-09-11"}, {"text": "美国8月非农就业+16.2万人(远超预期的5.5万人)→美联储加息可能性重新受到关注，引发需求抑制担忧。", "src": "ING Think, 2026-09-04"}, {"text": "VLCC运费创历史新高 — 阿曼湾至远东航线为$55.55/mt(9/4)。LR1霍尔木兹海峡内部装货运费为w810(较外部溢价逾w600)。", "src": "Platts, 2026-09-08"}]}], "outlooks": {"brent": {"icon": "↔", "pts": ["若霍尔木兹通行恢复或伊朗-阿曼临时航道协议达成，将带来下行压力", "若沙特南部设施重启延迟或再遭袭击，不排除重新测试$105~108/bbl"]}, "wti": {"icon": "↔", "pts": ["USGC库存增加(2.475亿桶，8月中旬以来最高)限制短期上行空间", "若亚洲对WTI Midland的需求持续，预计$100/bbl支撑位将维持"]}, "sm": {"icon": "▼", "pts": ["前一日大涨后进入调整阶段 — 华东库存低位及印度需求支撑下方", "若台塑2号SM装置全面提升开工率致供应增加，或有进一步下跌空间"]}, "bd": {"icon": "—", "pts": ["持平5个交易日 — 预计将维持供应紧张与需求疲软的平衡状态", "若S-Oil Shaheen BD装置(年产20万吨)启动商业化生产，将成为供应增加因素"]}, "naph": {"icon": "▲", "pts": ["中东供应中断担忧及LR1运费飙升持续构成短期上行压力", "若霍尔木兹通行出现正常化迹象，近期涨幅或部分回吐"]}, "benz": {"icon": "▲", "pts": ["9月CP上调预期($1,035/mt)及华东库存低位支撑价格", "汽油调和需求持续，加之乐天BTX装置永久关闭致韩国出口减少"]}, "pp": {"icon": "↔", "pts": ["若丙烯负利润结构持续，减产或对价格形成支撑", "中国新增PP产能计划四季度投产(如华锦阿美年产100万吨等) — 构成供应增加压力"]}}, "info_tag_labels": {"geo": "地缘政治", "plant": "装置", "maint": "检修", "opec": "OPEC+", "logistics": "物流", "util": "开工率", "reg": "监管", "macro": "宏观"}, "infos": [{"tag": "geo", "text": "伊朗与阿曼就霍尔木兹临时航道的谈判已进入最后阶段 — IMO注册可能即将完成。9/7通行的22艘船只中有9艘在AIS关闭状态下合规航行。", "src": "S&P Global CAS, 2026-09-08"}, {"tag": "plant", "text": "中国石油华北炼油厂(20万桶/日)9/1启动全厂定期检修(预计约52天) — 影响中国9月旺季供需。", "src": "Platts, 2026-09-04"}, {"tag": "maint", "text": "台塑石化麦寮3号裂解装置(年产120万吨)9月初重启 — 乙烷转换改造完成后，计划2027年初转为乙烷裂解装置。", "src": "Asian Petrochemical Feedstock Market Outlook, 2026-09-04"}, {"tag": "opec", "text": "OPEC+于9/6同意暂停10月自愿减产配额的增产计划。截至7月，实际产量低于配额630万桶/日。下次会议定于10/4。", "src": "OPEC Secretariat, 2026-09-06"}, {"tag": "logistics", "text": "VLCC运费创历史新高 — 阿曼湾至远东航线为$55.55/mt(9/4)。LR1霍尔木兹内部装货运费为w810(朱拜勒-日本，9/15)。部分船东拒绝驶入霍尔木兹海峡。", "src": "Platts, 2026-09-08"}, {"tag": "util", "text": "韩国韩华道达尔大山两套裂解装置维持85%开工率(9月保持稳定)。S-Oil RFCC开工率为70%(8月85%→9月降至70%)。乐天化学丽水裂解装置维持70~75%。", "src": "Asia-Pacific Arab Gulf Marketscan, 2026-09-08"}, {"tag": "reg", "text": "巴西将PE·PP进口关税20%延长一年(2026年10月17日生效)。PVC关税恢复至12.6%。ABS关税维持20%。", "src": "Platts, 2026-09-07"}, {"tag": "macro", "text": "日本7月美国原油进口量达2,730万桶(历史最高，同比+361%)，对中东依赖度降至58.9%(1951年以来最低)。韩国7月原油进口量同比也有所增加。", "src": "METI, 2026-09-01"}], "ai_narrative_lbl": "📡 核心趋势叙述", "ai_narrative": "贯穿本周市场的核心主线是<em>\"地缘政治风险溢价的结构化\"</em>。霍尔木兹海峡通行船只数量从8月末均值20艘骤降至9月初的8艘，又于9月7日反弹至22艘，如此剧烈波动持续之下，原油、石脑油、LPG价格中已结构性地嵌入了超越单纯供需基本面的地缘政治溢价。与此同时，亚洲石化市场正陷入\"原料昂贵+需求疲软\"的双重挤压，SM、PP等主要品种利润转负或逼近历史低位，生产商已进入主动降负荷的供应自律调整阶段。鉴于第四季度中国新增产能即将投产(如华锦阿美PP年产100万吨等)，若地缘政治风险缓解，供应可能快速转向过剩，这成为中期下行风险的焦点。", "signal_lbl": "📊 定量信号框", "signals": [{"label": "布伦特5交易日动量 (9/4→9/11)", "val": "+$8.33/bbl (+8.65%)"}, {"label": "WTI 5交易日动量 (9/3→9/11)", "val": "+$8.75/bbl (+9.58%)"}, {"label": "布伦特-WTI价差 (9/11)", "val": "$4.56/bbl(较前一日$5.15收窄)"}, {"label": "SM 5交易日动量 (9/4→9/11)", "val": "+$57/mt (+4.45%)"}, {"label": "BD 5交易日动量 (9/4→9/11)", "val": "0.00(持平僵化)"}, {"label": "石脑油5交易日动量 (9/4→9/11)", "val": "+$105.5/mt (+12.22%)"}, {"label": "苯5交易日动量 (9/4→9/11)", "val": "+$102.67/mt (+9.34%)"}, {"label": "PP 5交易日动量 (9/4→9/11)", "val": "+$45/mt (+4.00%)"}, {"label": "霍尔木兹海峡通行 (9/7)", "val": "22艘(8/28以来最高，周度降至93艘)"}, {"label": "ABS生产利润 (截至9/4)", "val": "−$124.20/mt(6个月最低)"}, {"label": "VLCC阿曼湾至远东运费", "val": "$55.55/mt(历史最高，9/4)"}, {"label": "华东SM港口库存 (9/4)", "val": "40,800吨(20个月最低)"}], "flag_lbl": "🚨 异常模式提示", "flags": ["⚠️ <strong>石脑油单日大涨+6.60%</strong> — 9/11 C+F Japan报$968.5/mt。周度累计+12.22%为2026年内最大单周涨幅，直接反映中东供应中断担忧向现货市场的传导。", "⚠️ <strong>BD在$1,600/mt连续5个交易日僵持不动</strong> — 价格锁定在供应紧张与需求疲软的平衡点。突破方向将是判断市场走势的关键信号。", "⚠️ <strong>ABS生产利润倒挂加剧</strong> — 原料成本$1,696.90/mt对比ABS价格$1,570/mt(9/9)。利润为−$126.90/mt，生产商亏损结构持续，存在进一步下调开工率的可能。", "⚠️ <strong>布伦特站上$100/bbl呈结构性态势</strong> — 自9/9以来连续3个交易日结算价高于$100/bbl，为2026年5月22日以来最高水平，显示地缘政治溢价正结构性嵌入价格。"], "exec_lbl": "👔 管理层三行摘要", "exec_rows": [{"num": "①", "label": "起:", "text": "美伊冲突再度升温，布伦特维持$104.61/bbl、WTI维持$100.05/bbl，石脑油(C+F Japan)单日大涨+6.60%，令亚洲原料采购成本进入结构性高位阶段。"}, {"num": "②", "label": "承:", "text": "SM、苯周度走强但较前一日回调，BD在$1,600/mt僵持不动，PP在$1,170/mt持平 — 成本上涨无法向下游传导的利润挤压结构持续。"}, {"num": "③", "label": "结:", "text": "霍尔木兹通行能否恢复及四季度中国新增产能投产时点是短期方向性的核心变量 — 地缘政治若缓和，供应可能快速转向过剩，建议分散采购头寸并重新评估对冲策略。"}], "ct_labels": ["折线", "柱状", "平滑"], "chart_sec_note": "", "source_bar": ["代码: ICLL001 · NMCL001 · AAMFI00 · AAWWL00 · PAAAD00 · PHASM05 · PHBIK00", "日度评估基准日: 2026-09-04至2026-09-11(最近6个交易日) · Platts Daily Assessment(bate=c) / ICE·NYMEX Settlement", "ABS·AN: 今日(2026-09-12，周六)非发布日 — 全部章节中省略", "参考报告: Platts North Sea Crude Daily · US Pipeline Crude Daily · Asian PP/ABS/ACN Commentary · Asian Petrochemical Feedstock Market Outlook(929) · Daily Update on the War with Iran · Global Crude Oil Markets Short-Term Outlook(2026年9月) · Global Aromatics Supply and Demand Short-Term Outlook(2026年9月)"]}}};
+</script>
+<script>
+(function(){
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbwwkn1vzfvgnaHmfkVBaLhV1XnCJpCcHe1BnEuuMy4KkhX9ECNzNe8LYRH3DSVqjnCR/exec';
+  var DEFAULT_REPORT_DATE = '2026-09-11';
+
+  var P = [];
+  var chartData = {};
+  var T = {};
+  var PMAP = {};
+
+  var curLang = 'ko';
+  var chartTypes = {};
+  var chartVisible = {};
+
+  function requestedDate(){
+    var q = new URLSearchParams(window.location.search);
+    var d = q.get('date') || DEFAULT_REPORT_DATE;
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : DEFAULT_REPORT_DATE;
+  }
+
+  function setDbStatus(text, cls){
+    var el = document.getElementById('db-status');
+    if(!el) return;
+    el.textContent = text;
+    el.className = 'db-status ' + (cls || 'warn');
+  }
+
+  function applyData(nextData){
+    if(!nextData || !Array.isArray(nextData.products) || !nextData.chartData || !nextData.T){
+      throw new Error('Invalid report DATA format');
+    }
+    DATA = nextData;
+    P = DATA.products;
+    chartData = DATA.chartData;
+    T = DATA.T;
+    PMAP = {};
+    chartTypes = {};
+    chartVisible = {};
+    P.forEach(function(p){
+      PMAP[p.key] = p;
+      chartTypes[p.key] = 'line';
+      chartVisible[p.key] = true;
+    });
+    if(!T[curLang]) curLang = T.ko ? 'ko' : Object.keys(T)[0];
+  }
+
+  applyData(DATA);
+
+  function fmtNum(v){
+    var d = Number.isInteger(v) ? 0 : 2;
+    return v.toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+  }
+
+  function computeStats(key){
+    var series = chartData[key];
+    var n = series.vals.length;
+    var val = series.vals[n-1], prev = series.vals[n-2];
+    var delta = val - prev;
+    var pct = prev ? (delta/prev*100) : 0;
+    var dir = delta > 0 ? 'up' : (delta < 0 ? 'dn' : 'flat');
+    var arrow = delta > 0 ? '▲' : (delta < 0 ? '▼' : '—');
+    return {val:val, prev:prev, delta:delta, pct:pct, dir:dir, arrow:arrow};
+  }
+
+  function deltaText(delta, pct){
+    var s1 = delta >= 0 ? '+' : '';
+    var s2 = pct >= 0 ? '+' : '';
+    return s1 + fmtNum(delta) + ' (' + s2 + pct.toFixed(2) + '%)';
+  }
+
+  function render(){
+    var L = T[curLang];
+    document.documentElement.lang = curLang;
+
+    document.querySelectorAll('.lang-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-lang') === curLang);
+    });
+
+    document.getElementById('hdr-title').textContent = L.title;
+    document.getElementById('hdr-sub').innerHTML = L.sub1 + '<br>' + L.sub2;
+    document.getElementById('btn-img-dl').textContent = L.btn_img;
+    document.getElementById('btn-pdf-dl').textContent = L.btn_pdf;
+    ['s1','s2','s3','s4','s5','s6'].forEach(function(k,i){
+      document.getElementById(k+'-title').textContent = (i+1) + '. ' + L[k];
+      document.getElementById('badge-'+i).textContent = L.badges[i];
+    });
+
+    document.getElementById('footnote-el').innerHTML = L.footnote.join('<br>');
+    document.getElementById('summary-lbl').textContent = L.summary_lbl;
+    document.getElementById('summary-text').textContent = L.summary;
+    document.getElementById('prod-comm-lbl').textContent = L.prod_commentary_lbl;
+    document.getElementById('ai-narrative-lbl').textContent = L.ai_narrative_lbl;
+    document.getElementById('ai-narrative-text').innerHTML = L.ai_narrative;
+    document.getElementById('signal-lbl').textContent = L.signal_lbl;
+    document.getElementById('flag-lbl').textContent = L.flag_lbl;
+    document.getElementById('exec-lbl').textContent = L.exec_lbl;
+    document.getElementById('source-bar-el').innerHTML = L.source_bar.map(function(line,i){
+      var lbl = ['','',''][i];
+      return line;
+    }).join('<br>');
+
+    renderKPI(L);
+    renderTable(L);
+    renderProductCommentary(L);
+    renderFactors(L);
+    renderOutlooks(L);
+    renderInfos(L);
+    renderSignals(L);
+    renderFlags(L);
+    renderExec(L);
+    buildChartGrid(L);
+  }
+
+  function renderKPI(L){
+    var g = document.getElementById('kpi-grid');
+    g.innerHTML = '';
+    P.forEach(function(p){
+      var s = computeStats(p.key);
+      var card = document.createElement('div');
+      card.className = 'kpi-card';
+      card.style.borderLeft = '3px solid ' + p.color;
+      card.innerHTML =
+        '<div class="kpi-label">'+L.names[p.key]+'</div>' +
+        '<div class="kpi-val">$'+fmtNum(s.val)+'</div>' +
+        '<div class="kpi-delta '+s.dir+'">'+s.arrow+' '+deltaText(s.delta,s.pct)+'</div>' +
+        '<div class="kpi-unit">'+L.kpi_unit[p.freq]+'</div>';
+      g.appendChild(card);
+    });
+  }
+
+  function renderTable(L){
+    var head = document.getElementById('tbl-head');
+    head.innerHTML = L.tbl_headers.map(function(h){ return '<th>'+h+'</th>'; }).join('');
+    var body = document.getElementById('tbl-body');
+    body.innerHTML = P.map(function(p){
+      var s = computeStats(p.key);
+      return '<tr>' +
+        '<td><strong>'+L.names[p.key]+'</strong></td>' +
+        '<td class="sym">'+p.sym+'</td>' +
+        '<td>'+fmtNum(s.val)+'</td><td>USD/'+p.unit+'</td>' +
+        '<td class="'+s.dir+'">'+(s.delta>=0?'+':'-')+Math.abs(s.delta).toFixed(2)+'</td>' +
+        '<td class="'+s.dir+'">'+(s.pct>=0?'+':'-')+Math.abs(s.pct).toFixed(2)+'%</td>' +
+        '<td class="'+s.dir+'">'+s.arrow+'</td>' +
+        '<td>'+L.basis[p.freq]+'</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function renderProductCommentary(L){
+    var list = document.getElementById('prod-list');
+    list.innerHTML = P.map(function(p){
+      var s = computeStats(p.key);
+      return '<div class="comm-block" style="border-left-color:'+p.color+'">' +
+        '<div class="comm-name" style="color:'+p.color+'">'+p.icon+' '+L.names[p.key]+' ('+p.sym+') — $'+fmtNum(s.val)+'/'+p.unit+' '+s.arrow+'</div>' +
+        '<p>'+L.product_commentary[p.key]+'</p>' +
+        '</div>';
+    }).join('');
+  }
+
+  function renderFactors(L){
+    var g = document.getElementById('factor-grid');
+    g.innerHTML = L.factors.map(function(f){
+      var items = f.items.map(function(it){
+        return '<li>'+it.text+' <span class="src">('+it.src+')</span></li>';
+      }).join('');
+      return '<div class="factor-card">' +
+        '<span class="fc-cat fc-'+f.tag+'">'+L.factor_tag_labels[f.tag]+'</span>' +
+        '<ul>'+items+'</ul>' +
+        '</div>';
+    }).join('');
+  }
+
+  function renderOutlooks(L){
+    var g = document.getElementById('outlook-grid');
+    g.innerHTML = P.map(function(p){
+      var o = L.outlooks[p.key];
+      var cls = o.icon === '▲' ? 'up' : (o.icon === '▼' ? 'dn' : 'flat');
+      return '<div class="outlook-item">' +
+        '<div class="oi-name" style="color:'+p.color+'"><span class="oi-dir '+cls+'">'+o.icon+'</span> '+L.names[p.key]+'</div>' +
+        '<ul>' + o.pts.map(function(pt){ return '<li>'+pt+'</li>'; }).join('') + '</ul>' +
+        '</div>';
+    }).join('');
+  }
+
+  function renderInfos(L){
+    var list = document.getElementById('info-list');
+    list.innerHTML = L.infos.map(function(info){
+      return '<li>' +
+        '<span class="info-tag tag-'+info.tag+'">'+L.info_tag_labels[info.tag]+'</span>' +
+        '<span>'+info.text+' <em>('+info.src+')</em></span>' +
+        '</li>';
+    }).join('');
+  }
+
+  function renderSignals(L){
+    var rows = document.getElementById('signal-rows');
+    rows.innerHTML = L.signals.map(function(s){
+      var cls = '';
+      if(/^[+]/.test(s.val)) cls = 'up';
+      else if(/^[−-]/.test(s.val)) cls = 'dn';
+      return '<div class="signal-row"><span class="sr-label">'+s.label+'</span><span class="sr-val '+cls+'">'+s.val+'</span></div>';
+    }).join('');
+  }
+
+  function renderFlags(L){
+    var rows = document.getElementById('flag-rows');
+    rows.innerHTML = L.flags.map(function(f){ return '<div class="flag-item">'+f+'</div>'; }).join('');
+  }
+
+  function renderExec(L){
+    var rows = document.getElementById('exec-rows');
+    rows.innerHTML = L.exec_rows.map(function(e){
+      return '<div class="exec-row"><span class="er-num">'+e.num+'</span><strong>'+e.label+'</strong> '+e.text+'</div>';
+    }).join('');
+  }
+
+  function fmtAxDate(dt){
+    var parts = dt.split('-');
+    return parseInt(parts[1],10)+'/'+parseInt(parts[2],10);
+  }
+
+  function drawChart(key){
+    var canvas = document.getElementById('c-'+key);
+    if(!canvas) return;
+    var wrap = canvas.parentNode;
+    var W = wrap.clientWidth || 240, H = wrap.clientHeight || 140;
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = W*dpr; canvas.height = H*dpr;
+    canvas.style.width = W+'px'; canvas.style.height = H+'px';
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,W,H);
+
+    var p = PMAP[key];
+    var series = chartData[key];
+    var dates = series.dates, vals = series.vals, n = dates.length;
+    var minV = Math.min.apply(null, vals), maxV = Math.max.apply(null, vals);
+    var pad = (maxV-minV)*0.18 || Math.max(minV*0.02,5);
+    var yMin = minV-pad, yMax = maxV+pad;
+    var pL = 42, pR = 8, pT = 8, pB = 18;
+    var plotW = W-pL-pR, plotH = H-pT-pB;
+    function xP(i){ return pL + (n<=1?0:(i/(n-1))*plotW); }
+    function yP(v){ return pT + (1-(v-yMin)/(yMax-yMin))*plotH; }
+
+    ctx.strokeStyle = '#f1f5f9'; ctx.lineWidth = 1;
+    for(var gi=0; gi<=3; gi++){
+      var gy = pT + (gi/3)*plotH;
+      ctx.beginPath(); ctx.moveTo(pL,gy); ctx.lineTo(W-pR,gy); ctx.stroke();
+      var gv = yMax - (gi/3)*(yMax-yMin);
+      ctx.fillStyle = '#94a3b8'; ctx.font = '8px sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(gv>=100?Math.round(gv).toString():gv.toFixed(1), pL-4, gy+3);
+    }
+    ctx.fillStyle = '#94a3b8'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
+    dates.forEach(function(dt,i){ ctx.fillText(fmtAxDate(dt), xP(i), H-pB+11); });
+
+    var col = p.color, ct = chartTypes[key];
+    if(ct === 'bar'){
+      var bw = Math.max(5,(plotW/n)*0.5);
+      vals.forEach(function(v,i){
+        var x = xP(i)-bw/2, y = yP(v), bh = (H-pB)-y;
+        ctx.fillStyle = col+'99'; ctx.fillRect(x,y,bw,bh);
+        ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.strokeRect(x,y,bw,bh);
+      });
+    } else {
+      ctx.beginPath(); ctx.strokeStyle = col; ctx.lineWidth = 2;
+      vals.forEach(function(v,i){
+        var x = xP(i), y = yP(v);
+        if(i===0){ ctx.moveTo(x,y); }
+        else if(ct === 'smooth'){
+          var px = xP(i-1), py = yP(vals[i-1]), cpx = (px+x)/2;
+          ctx.bezierCurveTo(cpx,py,cpx,y,x,y);
+        } else { ctx.lineTo(x,y); }
+      });
+      ctx.stroke();
+      vals.forEach(function(v,i){
+        ctx.beginPath(); ctx.arc(xP(i),yP(v),2.5,0,Math.PI*2);
+        ctx.fillStyle = col; ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+      });
+    }
+  }
+
+  function buildChartCard(key, L){
+    var p = PMAP[key];
+    var s = computeStats(key);
+    var card = document.createElement('div');
+    card.className = 'chart-card';
+    card.id = 'card-'+key;
+    card.innerHTML =
+      '<div class="cc-header">' +
+        '<div>' +
+          '<div class="cc-name" style="color:'+p.color+'">'+L.names[key]+'</div>' +
+          '<div class="cc-unit">'+p.sym+' · USD/'+p.unit+'</div>' +
+        '</div>' +
+        '<div class="cc-controls">' +
+          '<div class="cc-type-btns">' +
+            '<button class="cc-type-btn active" data-chart="'+key+'" data-type="line">'+L.ct_labels[0]+'</button>' +
+            '<button class="cc-type-btn" data-chart="'+key+'" data-type="bar">'+L.ct_labels[1]+'</button>' +
+            '<button class="cc-type-btn" data-chart="'+key+'" data-type="smooth">'+L.ct_labels[2]+'</button>' +
+          '</div>' +
+          '<button class="cc-toggle active" data-chart="'+key+'" style="margin-left:4px;">ON</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:13px;font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums;">'+
+        fmtNum(s.val)+' <span class="'+s.dir+'" style="font-size:11px;">'+s.arrow+' '+deltaText(s.delta,s.pct)+'</span>'+
+      '</div>' +
+      '<div class="chart-canvas-wrap" id="wrap-'+key+'"><canvas id="c-'+key+'"></canvas></div>';
+    return card;
+  }
+
+  function buildChartGrid(L){
+    var grid = document.getElementById('chart-grid-container');
+    grid.innerHTML = '';
+    P.forEach(function(p){
+      grid.appendChild(buildChartCard(p.key, L));
+    });
+    setTimeout(function(){
+      P.forEach(function(p){ if(chartVisible[p.key]) drawChart(p.key); });
+    }, 30);
+  }
+
+  document.addEventListener('click', function(e){
+    var typeBtn = e.target.closest('.cc-type-btn');
+    if(typeBtn){
+      var key = typeBtn.getAttribute('data-chart');
+      var type = typeBtn.getAttribute('data-type');
+      chartTypes[key] = type;
+      var card = document.getElementById('card-'+key);
+      card.querySelectorAll('.cc-type-btn').forEach(function(b){
+        b.classList.toggle('active', b.getAttribute('data-type')===type);
+      });
+      if(chartVisible[key]) drawChart(key);
+      return;
+    }
+    var tog = e.target.closest('.cc-toggle');
+    if(tog){
+      var k = tog.getAttribute('data-chart');
+      chartVisible[k] = !chartVisible[k];
+      var wrap = document.getElementById('wrap-'+k);
+      wrap.style.display = chartVisible[k] ? '' : 'none';
+      tog.textContent = chartVisible[k] ? 'ON' : 'OFF';
+      tog.classList.toggle('active', chartVisible[k]);
+      tog.classList.toggle('off', !chartVisible[k]);
+      if(chartVisible[k]) drawChart(k);
+      return;
+    }
+    var langBtn = e.target.closest('.lang-btn');
+    if(langBtn){
+      curLang = langBtn.getAttribute('data-lang');
+      render();
+      return;
+    }
+  });
+
+  document.getElementById('btn-img-dl').addEventListener('click', function(){
+    var keys = P.map(function(p){return p.key;}).filter(function(k){ return chartVisible[k]; });
+    var canvases = keys.map(function(k){ return document.getElementById('c-'+k); }).filter(Boolean);
+    if(!canvases.length){ alert('No charts are visible.'); return; }
+    var gap = 8;
+    var totalH = canvases.reduce(function(s,c){ return s+c.height+gap; },0) - gap;
+    var maxW = Math.max.apply(null, canvases.map(function(c){ return c.width; }));
+    var merged = document.createElement('canvas');
+    merged.width = maxW; merged.height = Math.max(totalH,1);
+    var ctx = merged.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,maxW,merged.height);
+    var y = 0;
+    canvases.forEach(function(c){ ctx.drawImage(c,0,y); y += c.height+gap; });
+    var a = document.createElement('a');
+    a.href = merged.toDataURL('image/png');
+    a.download = 'daily_report_charts_' + requestedDate() + '.png';
+    a.click();
+    var ua = navigator.userAgent;
+    if(/iPhone|iPad|iPod/i.test(ua)) alert('iOS Safari: long-press the image to save it.');
+  });
+
+  document.getElementById('btn-pdf-dl').addEventListener('click', function(){
+    window.print();
+  });
+
+  window.addEventListener('resize', function(){
+    P.forEach(function(p){ if(chartVisible[p.key]) drawChart(p.key); });
+  });
+
+  async function loadReportFromDb(){
+    var d = requestedDate();
+    setDbStatus('DB ' + d + ' 조회 중', 'warn');
+
+    try{
+      var url = GAS_URL + '?action=getDailyReport&date=' + encodeURIComponent(d) + '&_=' + Date.now();
+      var res = await fetch(url, {method:'GET', cache:'no-store', redirect:'follow'});
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+
+      var payload = await res.json();
+
+      if(payload && payload.ok && payload.found && payload.data &&
+         Array.isArray(payload.data.products) && payload.data.chartData && payload.data.T){
+        applyData(payload.data);
+        setDbStatus('DB 동기화 · ' + d, 'ok');
+        render();
+        return;
+      }
+
+      throw new Error('해당 날짜의 저장된 리포트가 없습니다.');
+
+    }catch(err){
+      console.warn(err);
+      setDbStatus('DB 조회 실패', 'err');
+      document.getElementById('rpt-body').innerHTML =
+        '<div class="sec-card" style="text-align:center;padding:36px 18px;">' +
+        '<div style="font-size:16px;font-weight:800;margin-bottom:8px;">리포트를 불러오지 못했습니다.</div>' +
+        '<div style="font-size:12px;color:#64748b;">' + String(err.message || err) + '</div>' +
+        '</div>';
+    }
+  }
+
+  loadReportFromDb();
+})();
+</script>
+</body>
+</html>
