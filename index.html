@@ -10,6 +10,20 @@ body{margin:0;background:#f1f5f9;color:#0f172a;font-family:-apple-system,BlinkMa
 header{background:linear-gradient(135deg,#0f172a,#1e3a5f);color:white;padding:26px 20px}
 .wrap{max-width:980px;margin:auto}
 h1{margin:0;font-size:22px} .sub{color:#cbd5e1;margin-top:7px;font-size:12px}
+.header-row{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.admin-btn{
+  display:inline-block;
+  text-decoration:none;
+  background:#fff;
+  color:#1e3a5f;
+  border:1px solid rgba(255,255,255,.65);
+  padding:8px 12px;
+  border-radius:8px;
+  font-size:12px;
+  font-weight:800;
+  box-shadow:0 1px 2px rgba(0,0,0,.08)
+}
+.admin-btn:hover{background:#e2e8f0}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
 input,select{border:1px solid #cbd5e1;border-radius:8px;padding:9px 11px;background:#fff}
 input{flex:1;min-width:220px}
@@ -27,8 +41,13 @@ main{padding:0 14px 32px}
 </head>
 <body>
 <header><div class="wrap">
-<h1>📚 Platts Daily Archive</h1>
-<div class="sub">Google Sheet DB 기반 날짜별 석유화학 원료 조달 데일리 리포트</div>
+<div class="header-row">
+  <div>
+    <h1>📚 Platts Daily Archive</h1>
+    <div class="sub">Google Sheet DB 기반 날짜별 석유화학 원료 조달 데일리 리포트</div>
+  </div>
+  <a class="admin-btn" href="https://script.google.com/macros/s/AKfycbxms7CaivslRkaxchGxxZZ8EuvBD0fI-UjA-ala0yurRiptuPgdvt0iasIW4lqGLbbN/exec?page=admin" target="_blank" rel="noopener">🔐 관리자 업로드</a>
+</div>
 </div></header>
 <main class="wrap">
 <div class="toolbar">
