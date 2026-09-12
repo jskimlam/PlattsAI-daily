@@ -7,23 +7,12 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f1f5f9;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-header{background:linear-gradient(135deg,#0f172a,#1e3a5f);color:white;padding:26px 20px}
+header{background:linear-gradient(135deg,#0f172a,#1e3a5f);color:white;padding:24px 18px}
 .wrap{max-width:980px;margin:auto}
-h1{margin:0;font-size:22px} .sub{color:#cbd5e1;margin-top:7px;font-size:12px}
 .header-row{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
-.admin-btn{
-  display:inline-block;
-  text-decoration:none;
-  background:#fff;
-  color:#1e3a5f;
-  border:1px solid rgba(255,255,255,.65);
-  padding:8px 12px;
-  border-radius:8px;
-  font-size:12px;
-  font-weight:800;
-  box-shadow:0 1px 2px rgba(0,0,0,.08)
-}
-.admin-btn:hover{background:#e2e8f0}
+h1{margin:0;font-size:22px}
+.sub{color:#cbd5e1;margin-top:7px;font-size:12px}
+.admin-btn{display:inline-block;text-decoration:none;background:#fff;color:#1e3a5f;border:1px solid rgba(255,255,255,.65);padding:8px 12px;border-radius:8px;font-size:12px;font-weight:800}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
 input,select{border:1px solid #cbd5e1;border-radius:8px;padding:9px 11px;background:#fff}
 input{flex:1;min-width:220px}
@@ -32,8 +21,10 @@ main{padding:0 14px 32px}
 .month{background:white;border:1px solid #e2e8f0;border-radius:12px;margin:12px 0;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .month h2{font-size:14px;margin:0;padding:12px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0}
 .row{display:grid;grid-template-columns:110px 1fr 90px;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid #f1f5f9}
-.row:last-child{border-bottom:0} .date{font-weight:800;font-variant-numeric:tabular-nums}
-.title{font-size:12px;color:#334155} a{text-decoration:none}
+.row:last-child{border-bottom:0}
+.date{font-weight:800;font-variant-numeric:tabular-nums}
+.title{font-size:12px;color:#334155}
+a{text-decoration:none}
 .open{display:inline-block;text-align:center;background:#1e40af;color:white;padding:6px 10px;border-radius:7px;font-size:11px;font-weight:700}
 .empty{background:#fff;border:1px dashed #cbd5e1;border-radius:12px;padding:32px;text-align:center;color:#64748b}
 @media(max-width:600px){.row{grid-template-columns:85px 1fr}.open{grid-column:1/-1}}
@@ -46,9 +37,10 @@ main{padding:0 14px 32px}
     <h1>📚 Platts Daily Archive</h1>
     <div class="sub">Google Sheet DB 기반 날짜별 석유화학 원료 조달 데일리 리포트</div>
   </div>
-  <a class="admin-btn" href="https://script.google.com/macros/s/AKfycbz_9PHWqCNvQrCrup9FhfU3e_r5CQxSm_1RNuTmdtR9SiXwAkBdaQqpywFLjFDhVW-9/exec?page=admin" target="_blank" rel="noopener">🔐 관리자 업로드</a>
+  <a class="admin-btn" href="https://script.google.com/macros/s/AKfycbwwkn1vzfvgnaHmfkVBaLhV1XnCJpCcHe1BnEuuMy4KkhX9ECNzNe8LYRH3DSVqjnCR/exec?page=admin" target="_blank" rel="noopener">🔐 관리자 업로드</a>
 </div>
 </div></header>
+
 <main class="wrap">
 <div class="toolbar">
 <input id="q" placeholder="날짜 또는 제목 검색">
@@ -57,8 +49,9 @@ main{padding:0 14px 32px}
 <div class="status" id="status">Google Sheet DB 조회 중...</div>
 <div id="list"></div>
 </main>
+
 <script>
-const GAS_URL='https://script.google.com/macros/s/AKfycbz_9PHWqCNvQrCrup9FhfU3e_r5CQxSm_1RNuTmdtR9SiXwAkBdaQqpywFLjFDhVW-9/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbwwkn1vzfvgnaHmfkVBaLhV1XnCJpCcHe1BnEuuMy4KkhX9ECNzNe8LYRH3DSVqjnCR/exec';
 let REPORTS=[];
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -73,11 +66,7 @@ function groupMonth(rows){
 }
 
 function targetUrl(r){
-  if(r.githubUrl) return r.githubUrl;
-  const d = String(r.date || '');
-  const y = d.slice(0,4);
-  const m = d.slice(5,7);
-  return 'reports/' + y + '/' + m + '/' + d + '/';
+  return 'report.html?date='+encodeURIComponent(r.date);
 }
 
 function render(){
@@ -90,38 +79,74 @@ function render(){
   });
 
   const root=document.getElementById('list');
+
   if(!rows.length){
     root.innerHTML='<div class="empty">저장된 리포트가 없습니다.</div>';
     return;
   }
+
   const grouped=groupMonth(rows);
+
   root.innerHTML=Object.keys(grouped).sort().reverse().map(m=>{
     const rs=grouped[m].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+
     return '<section class="month"><h2>'+esc(m)+'</h2>'+
-      rs.map(r=>'<div class="row"><div class="date">'+esc(r.date)+'</div><div class="title">'+esc(r.title||'Platts Daily Report')+'</div><a class="open" href="'+esc(targetUrl(r))+'">리포트 보기</a></div>').join('')+
+      rs.map(r=>
+        '<div class="row">'+
+        '<div class="date">'+esc(r.date)+'</div>'+
+        '<div class="title">'+esc(r.title||'Platts Daily Report')+'</div>'+
+        '<a class="open" href="'+esc(targetUrl(r))+'">리포트 보기</a>'+
+        '</div>'
+      ).join('')+
       '</section>';
   }).join('');
 }
 
 async function load(){
   try{
-    const res=await fetch(GAS_URL+'?action=listReports&limit=500&_='+Date.now(),{cache:'no-store',redirect:'follow'});
+    const res=await fetch(
+      GAS_URL+'?action=listReports&limit=500&_='+Date.now(),
+      {cache:'no-store',redirect:'follow'}
+    );
+
     if(!res.ok) throw new Error('HTTP '+res.status);
+
     const data=await res.json();
+
     if(!data.ok) throw new Error(data.error||'API error');
+
     REPORTS=data.reports||[];
-    const years=[...new Set(REPORTS.map(r=>(r.date||'').slice(0,4)).filter(Boolean))].sort().reverse();
+
+    const years=[...new Set(
+      REPORTS.map(r=>(r.date||'').slice(0,4)).filter(Boolean)
+    )].sort().reverse();
+
     const sel=document.getElementById('year');
-    years.forEach(y=>sel.insertAdjacentHTML('beforeend','<option value="'+esc(y)+'">'+esc(y)+'</option>'));
-    document.getElementById('status').textContent='총 '+REPORTS.length+'개 리포트 · Google Sheet DB 연결';
+
+    years.forEach(y=>
+      sel.insertAdjacentHTML(
+        'beforeend',
+        '<option value="'+esc(y)+'">'+esc(y)+'</option>'
+      )
+    );
+
+    document.getElementById('status').textContent=
+      '총 '+REPORTS.length+'개 리포트 · Google Sheet DB 연결';
+
     render();
+
   }catch(e){
-    document.getElementById('status').textContent='DB 조회 실패: '+e.message;
-    document.getElementById('list').innerHTML='<div class="empty">Google Apps Script 연결을 확인해 주세요.</div>';
+    document.getElementById('status').textContent=
+      'DB 조회 실패: '+e.message;
+
+    document.getElementById('list').innerHTML=
+      '<div class="empty">Google Apps Script 연결을 확인해 주세요.</div>';
   }
 }
+
 document.getElementById('q').addEventListener('input',render);
 document.getElementById('year').addEventListener('change',render);
+
 load();
 </script>
 </body>
