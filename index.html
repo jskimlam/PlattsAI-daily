@@ -39,7 +39,7 @@ main{padding:0 14px 32px}
 <div id="list"></div>
 </main>
 <script>
-const GAS_URL='https://script.google.com/macros/s/AKfycbxg709BTPU-YtO9u-y7Z3U55Zh-nbT9Zx20iTy926FmQHviuSGIX3c-myZyUzrNyioi/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbxms7CaivslRkaxchGxxZZ8EuvBD0fI-UjA-ala0yurRiptuPgdvt0iasIW4lqGLbbN/exec';
 let REPORTS=[];
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -55,7 +55,10 @@ function groupMonth(rows){
 
 function targetUrl(r){
   if(r.githubUrl) return r.githubUrl;
-  return 'Platts_Daily_Report_2026-09-12_DB연결.html?date='+encodeURIComponent(r.date);
+  const d = String(r.date || '');
+  const y = d.slice(0,4);
+  const m = d.slice(5,7);
+  return 'reports/' + y + '/' + m + '/' + d + '/';
 }
 
 function render(){
