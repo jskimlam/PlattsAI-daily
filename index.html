@@ -37,7 +37,7 @@ a{text-decoration:none}
     <h1>📚 Platts Daily Archive</h1>
     <div class="sub">Google Sheet DB 기반 날짜별 석유화학 원료 조달 데일리 리포트</div>
   </div>
-  <a class="admin-btn" href="https://script.google.com/macros/s/AKfycbwwkn1vzfvgnaHmfkVBaLhV1XnCJpCcHe1BnEuuMy4KkhX9ECNzNe8LYRH3DSVqjnCR/exec?page=admin" target="_blank" rel="noopener">🔐 관리자 업로드</a>
+  <a class="admin-btn" href="https://script.google.com/macros/s/AKfycbxU64l0nONIVPbY2HGC58xKVQpxslMjqBTJDCMTSeauLjDtM1k67Ic1mnq9UOSV1Inx/exec?page=admin" target="_blank" rel="noopener">🔐 관리자 업로드</a>
 </div>
 </div></header>
 
@@ -51,7 +51,7 @@ a{text-decoration:none}
 </main>
 
 <script>
-const GAS_URL='https://script.google.com/macros/s/AKfycbwwkn1vzfvgnaHmfkVBaLhV1XnCJpCcHe1BnEuuMy4KkhX9ECNzNe8LYRH3DSVqjnCR/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbxU64l0nONIVPbY2HGC58xKVQpxslMjqBTJDCMTSeauLjDtM1k67Ic1mnq9UOSV1Inx/exec';
 let REPORTS=[];
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -90,12 +90,12 @@ function render(){
   root.innerHTML=Object.keys(grouped).sort().reverse().map(m=>{
     const rs=grouped[m].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 
-    return '<section class="month"><h2>'+esc(m)+'</h2>'+
+    return '<section class="month"><h2>'+esc(m)+'</h2>'+ 
       rs.map(r=>
         '<div class="row">'+
-        '<div class="date">'+esc(r.date)+'</div>'+
-        '<div class="title">'+esc(r.title||'Platts Daily Report')+'</div>'+
-        '<a class="open" href="'+esc(targetUrl(r))+'">리포트 보기</a>'+
+        '<div class="date">'+esc(r.date)+'</div>'+ 
+        '<div class="title">'+esc(r.title||'Platts Daily Report')+'</div>'+ 
+        '<a class="open" href="'+esc(targetUrl(r))+'">리포트 보기</a>'+ 
         '</div>'
       ).join('')+
       '</section>';
