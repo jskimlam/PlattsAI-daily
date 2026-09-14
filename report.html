@@ -18,7 +18,7 @@ main{max-width:980px;margin:auto;padding:16px 12px 32px}.card{background:#fff;bo
 <main id="main"><div class="card"><div class="muted">리포트를 불러오는 중...</div></div></main>
 <script>
 (function(){
-const GAS_URL='https://script.google.com/macros/s/AKfycby8HIhIs3OQn7cv0fPqOkd8nj6GsLKGFZa8vzDYzo7ZTh5fxC6AwzGELZWD186MqUL9/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbxTrZ5IeWl8LkIvtfPYwFRmmsGGU4_WHw3p0O4NDT-AVwQKi0Zi5ckzWoRbXUlBzXJf/exec';
 let DATA=null,lang='ko';
 const $=id=>document.getElementById(id), A=v=>Array.isArray(v)?v:[], S=(v,d='')=>v==null?d:String(v), E=s=>S(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function date(){const d=new URLSearchParams(location.search).get('date');return /^\d{4}-\d{2}-\d{2}$/.test(d||'')?d:'2026-09-11'}
