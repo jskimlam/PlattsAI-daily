@@ -1,0 +1,49 @@
+name: Update GAS URL
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/update-gas-url.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace GAS deployment URL
+        shell: bash
+        run: |
+          OLD='https://script.google.com/macros/s/AKfycbwwkn1vzfvgnaHmfkVBaLhV1XnCJpCcHe1BnEuuMy4KkhX9ECNzNe8LYRH3DSVqjnCR/exec'
+          NEW='https://script.google.com/macros/s/AKfycbxU64l0nONIVPbY2HGC58xKVQpxslMjqBTJDCMTSeauLjDtM1k67Ic1mnq9UOSV1Inx/exec'
+          python3 - <<'PY'
+          from pathlib import Path
+          old = 'https://script.google.com/macros/s/AKfycbwwkn1vzfvgnaHmfkVBaLhV1XnCJpCcHe1BnEuuMy4KkhX9ECNzNe8LYRH3DSVqjnCR/exec'
+          new = 'https://script.google.com/macros/s/AKfycbxU64l0nONIVPbY2HGC58xKVQpxslMjqBTJDCMTSeauLjDtM1k67Ic1mnq9UOSV1Inx/exec'
+          for name in ('index.html','report.html'):
+              p = Path(name)
+              if not p.exists():
+                  continue
+              s = p.read_text(encoding='utf-8')
+              s2 = s.replace(old, new)
+              if s2 != s:
+                  p.write_text(s2, encoding='utf-8')
+                  print('updated', name)
+              else:
+                  print('no change', name)
+          PY
+      - name: Commit changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html report.html
+          git commit -m 'Point PlattsAI frontend to latest GAS deployment'
+          git push
