@@ -8,7 +8,7 @@
 <script>
 (function(){
 'use strict';
-const GAS_URL='https://script.google.com/macros/s/AKfycbygIHKgqSHk9WdaYK3TG2BO_p0S2PwZgByUdDFrcDdTkVOQ9NQPhC8saF4pj1ENAH6H/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbwZw2MIlf4ds-p6cBkeLYTpvSVDSzRF1YuQJ3ZU0Ot0eCuJ-Lf5LFNPji2RflxRtxdX/exec';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=new URLSearchParams(location.search).get('date')||'';let frame=null;
 function toast(s){$('toast').textContent=s;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2200)}
