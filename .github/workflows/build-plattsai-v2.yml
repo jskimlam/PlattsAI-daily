@@ -1,0 +1,38 @@
+name: Build LAM Insight APK
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths: ['android-v2/**', '.github/workflows/build-plattsai-v2.yml']
+  push:
+    branches: [feature/plattsai-android-v2]
+    paths: ['android-v2/**', '.github/workflows/build-plattsai-v2.yml']
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Extract Android project
+        shell: bash
+        run: |
+          base64 --decode android-v2/project.zip.b64 > /tmp/project.zip
+          unzip -oq /tmp/project.zip -d android-v2
+          mkdir -p android-v2/app/src/main/res/drawable-nodpi
+          base64 --decode android-v2/icon.jpg.b64 > android-v2/app/src/main/res/drawable-nodpi/platts_icon.jpg
+      - name: Build debug APK
+        working-directory: android-v2
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LAM-Insight-2.1-apk
+          path: android-v2/app/build/outputs/apk/debug/app-debug.apk
